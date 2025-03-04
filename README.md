@@ -68,16 +68,6 @@ ws.onopen = () => {
 
 ### Events
 
-TEXT EventType = iota
-DELIVERED 
-MARK_READ
-ERR
-PROFILE_INFO
-CHATPREVIEWS
-
-SearchUserRequest
-SearchUserResponse
-
 | Event Type         | Description                                      | Code |
 |--------------------|--------------------------------------------------|------|
 | `TEXT`            | Send a message to another user                   | 0    |
