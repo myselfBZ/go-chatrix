@@ -1,0 +1,65 @@
+package store
+
+import (
+	"database/sql"
+	"time"
+)
+
+type ChatStore struct{
+    db *sql.DB
+}
+
+// with stands for "conversation with" so the other person in the conversation
+type Chat struct{
+    ID int
+    UserID int
+    With int
+    CreatedAt time.Time
+}
+
+type ChatPreview struct{
+    ID int `json:"id"`
+    Username string `json:"username"`
+}
+
+func (c *ChatStore) Create(chat *Chat) error {
+    q := `INSERT INTO chats(user_1_id, user_2_id) VALUES($1, $2) RETURNING id`
+    err := c.db.QueryRow(q, chat.UserID, chat.With).Scan(&chat.ID)
+    return err
+}
+
+func (c *ChatStore) ChatPreviews(userID int) ([]*ChatPreview, error) {
+    q := `SELECT 
+            users.id,
+            users.username AS with_username
+          FROM chats
+          JOIN users ON users.id = (CASE WHEN chats.user_1_id = $1 THEN chats.user_2_id ELSE chats.user_1_id END)
+          WHERE chats.user_1_id = $1 OR chats.user_2_id = $1;`
+    r, err := c.db.Query(q, userID)
+    if err != nil{
+        return nil, err
+    }
+    var chats []*ChatPreview
+    for r.Next(){
+        var chat ChatPreview
+        err := r.Scan(&chat.ID, &chat.Username)
+        if err != nil{
+            return nil, err
+        }
+        chats = append(chats, &chat)
+    }
+    return chats, nil
+}
+
+
+func (c *ChatStore) HasChatWith(user, other int) (error) {
+    q := `SELECT 1 
+    FROM chats 
+    WHERE (user_1_id = $1 AND user_2_id = $2) 
+    OR (user_1_id = $2 AND user_2_id = $1) 
+    LIMIT 1;
+    `
+    var exists bool
+    err := c.db.QueryRow(q, user, other).Scan(&exists)
+    return err
+}
