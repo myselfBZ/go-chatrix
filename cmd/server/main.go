@@ -9,6 +9,7 @@ import (
 )
 
 var(
+    server_port = os.Getenv("SERVER_PORT")
     host = os.Getenv("DB_HOST")
     port = os.Getenv("DB_PORT")
     user = os.Getenv("DB_USER")
@@ -20,7 +21,7 @@ var(
 
 func main(){
     config := Config{}
-    config.Addr = ":6969"
+    config.Addr = server_port
     config.Db = dbConfig{
         Addr: fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, password, host, port, db_name),
     }

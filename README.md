@@ -15,7 +15,7 @@ Chatrix is a **real-time, event-driven messaging backend** built using **Go** an
 
 - **Golang** (backend)
 - **WebSockets** for real-time communication
-- **PostgreSQL** (or any SQL DB) for data storage
+- **PostgreSQL** 
 - **JWT** for authentication
 
 ## Getting Started
@@ -43,20 +43,22 @@ go mod tidy
 
 Set up your **environment variables** in a `.env` file:
 ```
-DATABASE_URL=postgres://user:password@localhost:5432/chatrix?sslmode=disable
-JWT_SECRET=your_secret_key
-PORT=8080
+DB_NAME=chatrix
+DB_HOST=localhost
+DB_PORT=32768
+DB_USER=postgres
+DB_PASSWORD=new_password
 ```
 
 ### Running the Server
 ```sh
-go run main.go
+make run
 ```
 
 ## WebSocket API
 
 ### Connecting
-Clients should connect via WebSockets:
+Clients should connect via WebSockets, (and send token after the handshake):
 ```js
 const ws = new WebSocket("ws://localhost:8080/ws");
 ws.onopen = () => {
@@ -66,14 +68,26 @@ ws.onopen = () => {
 
 ### Events
 
-| Event Type       | Description                                      |
-|------------------|--------------------------------------------------|
-| `TEXT`          | Send a message to another user                  |
-| `DELIVERED`     | Message delivered confirmation                   |
-| `PROFILE_INFO`  | Sends user profile info after authentication    |
-| `CHATPREVIEWS`  | Sends list of recent chats on connection        |
-| `SearchUserRequest` | Search for a user                            |
-| `SearchUserResponse` | Response with matching users                |
+TEXT EventType = iota
+DELIVERED 
+MARK_READ
+ERR
+PROFILE_INFO
+CHATPREVIEWS
+
+SearchUserRequest
+SearchUserResponse
+
+| Event Type       | Description                                      | 
+|------------------|--------------------------------------------------|--------------------------------------------------|
+| `TEXT`          | Send a message to another user                  | | 0 |
+| `DELIVERED`     | Message delivered confirmation                   |  1 |
+| `MARK_READ`     | Mark a message read                             | 2   |
+| `ERR`           | Error                                           | 3   |
+| `PROFILE_INFO`  | Sends user profile info after authentication    | 4   |
+| `CHATPREVIEWS`  | Sends list of recent chats on connection        | 5   |
+| `SearchUserRequest` | Search for a user                            | 6  |
+| `SearchUserResponse` | Response with matching users                | 7 |
 
 ### Sending a Message
 ```js
@@ -82,7 +96,7 @@ ws.send(JSON.stringify({
     body: JSON.stringify({
         to: "username",
         content: "Hello!",
-        mark: 12345
+        mark: `some unique mark for clients to recognize the DELIVERD event for this message`
     })
 }));
 ```
