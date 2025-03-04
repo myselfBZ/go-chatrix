@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatrix Login</title>
+    <style>
+        :root {
+            --chatrix-blue: #00ADD8;
+            --chatrix-light-blue: #5DC9E2;
+            --chatrix-dark-blue: #007D9C;
+            --chatrix-grey: #E0EBF5;
+            --chatrix-dark-grey: #6E7B8B;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--chatrix-grey);
+        }
+        
+        .login-container {
+            width: 380px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .login-logo {
+            margin-bottom: 30px;
+            color: var(--chatrix-blue);
+            font-size: 36px;
+            font-weight: 700;
+        }
+        
+        .login-title {
+            color: var(--chatrix-dark-blue);
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .login-form input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        .login-form input:focus {
+            outline: none;
+            border-color: var(--chatrix-blue);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--chatrix-blue);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .login-btn:hover {
+            background-color: var(--chatrix-dark-blue);
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .login-footer {
+            margin-top: 25px;
+            color: var(--chatrix-dark-grey);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-logo">
+            <span>CHATRIX</span>
+        </div>
+        <h1 class="login-title">Sign in to your account</h1>
+        <div id="error-message" class="error-message"></div>
+        <form id="login-form" class="login-form">
+            <input type="text" id="username" name="username" placeholder="Username" required>
+            <input type="password" id="password" name="password" placeholder="Password" required>
+            <button type="submit" class="login-btn">Sign In</button>
+        </form>
+        <div class="login-footer">
+            Secured with Chatrix authentication
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+            
+            // Reset error message
+            errorMessage.style.display = 'none';
+            errorMessage.textContent = '';
+            
+            fetch('http://localhost:6969/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Login failed');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Successful login
+                console.log('Login successful:', data);
+                localStorage.setItem('token', data.token) 
+                window.location.href = '/index.html';
+            })
+            .catch(error => {
+                // Display error message
+                errorMessage.textContent = 'Invalid username or password. Please try again.';
+                errorMessage.style.display = 'block';
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
