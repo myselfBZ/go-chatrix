@@ -13,6 +13,8 @@ type Message struct{
     UserID int
 }
 
+// TODO batching
+
 // func (m *MessageStore) Create(msg *Message) error {
 //     q := `INSERT INTO messagse (user_id)`    
 // }
