@@ -78,16 +78,16 @@ CHATPREVIEWS
 SearchUserRequest
 SearchUserResponse
 
-| Event Type       | Description                                      | 
-|------------------|--------------------------------------------------|--------------------------------------------------|
-| `TEXT`          | Send a message to another user                  | | 0 |
-| `DELIVERED`     | Message delivered confirmation                   |  1 |
-| `MARK_READ`     | Mark a message read                             | 2   |
-| `ERR`           | Error                                           | 3   |
-| `PROFILE_INFO`  | Sends user profile info after authentication    | 4   |
-| `CHATPREVIEWS`  | Sends list of recent chats on connection        | 5   |
-| `SearchUserRequest` | Search for a user                            | 6  |
-| `SearchUserResponse` | Response with matching users                | 7 |
+| Event Type         | Description                                      | Code |
+|--------------------|--------------------------------------------------|------|
+| `TEXT`            | Send a message to another user                   | 0    |
+| `DELIVERED`       | Message delivered confirmation                    | 1    |
+| `MARK_READ`       | Mark a message as read                           | 2    |
+| `ERR`             | Error message                                    | 3    |
+| `PROFILE_INFO`    | Sends user profile info after authentication      | 4    |
+| `CHATPREVIEWS`    | Sends list of recent chats on connection          | 5    |
+| `SearchUserRequest`  | Request to search for a user                     | 6    |
+| `SearchUserResponse` | Response with matching users                    | 7    |
 
 ### Sending a Message
 ```js
