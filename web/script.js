@@ -13,14 +13,12 @@ let state = {
         username:"",
         id:null,
     },
-    pendingMessages:{},
-    unreadMessages:[],
     //...
 }
 
 
 let pendingMessages = {};
-let unreadMessages = {};
+
 
 const EVENT = {
     Text:0,
@@ -90,20 +88,30 @@ function init(){
         switch (data.type){
             case EVENT.Text:
                 // UI shit
+                if(data.body.from !== state.to.username) {
+                    // this means that if the user sending this message isn't
+                    // the user that current user is having conversation with
+                    // then users just gets notified
+                    alert(`you got a new message from ${data.body.from}`)
+                    return
+                };
                 const msgs = document.getElementById('msgs')
                 const incomingMsg = document.createElement('p')
-                incomingMsg.textContent = `${data.body.from}:  ${data.body.content}`
+                incomingMsg.textContent = `${data.body.content}`
                 msgs.appendChild(incomingMsg)
                 scrollToBottom()
 
-                // send read Event!
 
                 break;
+
+
             case EVENT.ProfileInfo:
                 state.user = data.body
                 const h1 = document.getElementById('welcome')
                 h1.innerHTML += ` ${state.user.name}`
                 break
+
+
             case EVENT.Delivered:
                 const htmlElement = pendingMessages[data.body.mark]
                 const msgStatus = document.createElement('small')
@@ -111,7 +119,10 @@ function init(){
                 htmlElement.appendChild(msgStatus)
                 delete pendingMessages[data.body.mark]
                 break
+
+
             case EVENT.Chatprview:
+
                 const div = document.getElementById('chats')
                 for(const i of data.body){
                     const chatCard = document.createElement('h3')
@@ -122,17 +133,9 @@ function init(){
                         state.to.id = i.id
                         
                         const textingTo = document.getElementById('texting-to')
-
-                        if(textingTo === null){
-                            const newTextingTo = document.createElement('p')
-                            newTextingTo.textContent = `You are texting ${state.to.username}`
-                            newTextingTo.id = 'texting-to'
-                            document.body.appendChild(newTextingTo)
-                            handleLoadingChatHistory(i.id)
-                            return
-                        }
-                        textingTo.textContent = `You are texting ${state.to.username}`
+                        textingTo.textContent = `${state.to.username}`
                         handleLoadingChatHistory(i.id)
+                        showMessageInput()
 
                     })
                     console.log(i)
@@ -141,10 +144,13 @@ function init(){
                     div.appendChild(chatCard)
                 }
                 break;
+
+
                 case EVENT.SearchByUsernameResponse:
+
                 const container = document.getElementById('searched-users')
                 if(container.innerHTML != "") container.innerHTML = "";
-                for (user of data.body){
+                for (const user of data.body){
                     const result = document.createElement('p')
                     result.textContent = user.username
 
@@ -152,22 +158,21 @@ function init(){
                         if(state.to.username === result.textContent) return;
                         
                         state.to.username = result.textContent
-                        
+                        state.to.id = user.id
                         const textingTo = document.getElementById('texting-to')
-                        if(textingTo === null) {
-                            const newTextingTo = document.createElement('p')
-                            newTextingTo.id = 'texting-to'
-                            newTextingTo.textContent = `You are texting ${result.textContent}`
-                            document.body.appendChild(newTextingTo)
-                            return
-                        }
 
-                        textingTo.textContent =   `You are texting to ${result.textContent}`
+                        textingTo.textContent =   `${result.textContent}`
+                        
+                        
+                        handleLoadingChatHistory(user.id)
+                        showMessageInput()
                     })
                     
                     container.appendChild(result)
                 }
                 break;
+
+
                 case EVENT.LoadChatHistoryResponse:
                     const msgContainer = document.getElementById('msgs')
                     msgContainer.innerHTML = ""
@@ -208,6 +213,21 @@ function handleLoadingChatHistory(userId){
     
     ws.send(JSON.stringify(event))
 }
+
+function showMessageInput(){
+    const container = document.getElementById('message-input')
+    if(container.innerHTML !== "") return;
+    const input = document.createElement('input')
+    input.type = "text"
+    input.id = "msg"
+    
+    const sendButton = document.createElement('button')
+    sendButton.textContent = "send"
+
+    container.appendChild(input)
+    container.appendChild(sendButton)
+}
+
 
 function handleSearch(){
     const username = document.getElementById('search').value

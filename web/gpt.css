@@ -134,7 +134,7 @@ button:hover {
 }
 
 #msgs p {
-    background: #333;
+/*   background: #333; */
     padding: 10px;
     border-radius: 5px;
     margin-bottom: 5px;
@@ -143,8 +143,8 @@ button:hover {
 
 
 .users-msgs{
-    background: #444;
-    text-align: right;
+    background: #444; 
+    text-align: right; 
 }
 
 
