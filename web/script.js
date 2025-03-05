@@ -1,3 +1,6 @@
+// Dear future me, i cannot express how sorry i am for writing this piece of sh*t
+
+
 const addr = "http://localhost:6969/ws"
 const ws = new WebSocket(addr)
 
@@ -6,14 +9,15 @@ let state = {
         username:"",
         id:null,
     },
-    user:{},
+    user:{
+        username:"",
+        id:null,
+    },
     pendingMessages:{},
     unreadMessages:[],
     //...
 }
 
-
-let user;
 
 let pendingMessages = {};
 let unreadMessages = {};
@@ -21,15 +25,19 @@ let unreadMessages = {};
 const EVENT = {
     Text:0,
     Delivered:1,
+    // MarkRead:2,
     Err:3,
     ProfileInfo: 4,
     Chatprview:5,
     SearchByUsername:6,
-    SearchByUsernameResponse:7
+    SearchByUsernameResponse:7,
+
+    LoadChatHistoryRequest:8,
+    LoadChatHistoryResponse:9
 }
 
 function handleSend(){
-    if(state.to == ""){
+    if(state.to.username === "" || state.to.username === state.user.username){
         const errorMessage = document.createElement('p')
         errorMessage.style.color = 'red'
         errorMessage.textContent = "first choose someone to text okay?"
@@ -56,12 +64,13 @@ function handleSend(){
     ws.send(JSON.stringify(event))
 
     const viewableMsg = document.createElement('p')
-    viewableMsg.innerText = "You: " + msg
-    
+    viewableMsg.innerText = msg
+    viewableMsg.className = "users-msgs"
     pendingMessages[mark] = viewableMsg
     document.getElementById('msgs').appendChild(viewableMsg)
 
     document.getElementById("msg").value = ""
+    scrollToBottom()
 }
 
 function init(){
@@ -85,14 +94,15 @@ function init(){
                 const incomingMsg = document.createElement('p')
                 incomingMsg.textContent = `${data.body.from}:  ${data.body.content}`
                 msgs.appendChild(incomingMsg)
+                scrollToBottom()
 
                 // send read Event!
 
                 break;
             case EVENT.ProfileInfo:
-                user = data.body
+                state.user = data.body
                 const h1 = document.getElementById('welcome')
-                h1.innerHTML += ` ${user.name}`
+                h1.innerHTML += ` ${state.user.name}`
                 break
             case EVENT.Delivered:
                 const htmlElement = pendingMessages[data.body.mark]
@@ -103,16 +113,27 @@ function init(){
                 break
             case EVENT.Chatprview:
                 const div = document.getElementById('chats')
-                for(i of data.body){
+                for(const i of data.body){
                     const chatCard = document.createElement('h3')
                     
                     chatCard.addEventListener("click", () => {
-                        if (state.to == chatCard.textContent) return;
+                        if (state.to.username === chatCard.textContent) return;
                         state.to.username = chatCard.textContent
                         state.to.id = i.id
-                        const textingTo = document.createElement('p')
+                        
+                        const textingTo = document.getElementById('texting-to')
+
+                        if(textingTo === null){
+                            const newTextingTo = document.createElement('p')
+                            newTextingTo.textContent = `You are texting ${state.to.username}`
+                            newTextingTo.id = 'texting-to'
+                            document.body.appendChild(newTextingTo)
+                            handleLoadingChatHistory(i.id)
+                            return
+                        }
                         textingTo.textContent = `You are texting ${state.to.username}`
-                        document.body.appendChild(textingTo)
+                        handleLoadingChatHistory(i.id)
+
                     })
                     console.log(i)
                     chatCard.textContent = i.username
@@ -124,27 +145,69 @@ function init(){
                 const container = document.getElementById('searched-users')
                 if(container.innerHTML != "") container.innerHTML = "";
                 for (user of data.body){
-                    // HASH T MEL
                     const result = document.createElement('p')
                     result.textContent = user.username
 
                     result.addEventListener('click', () => {
-                        if (state.to == result.textContent) return;
+                        if(state.to.username === result.textContent) return;
+                        
                         state.to.username = result.textContent
-                        state.to.id = user.id
-                        const textingTo = document.createElement('p')
-                        textingTo.textContent = `You are texting ${state.to.username}`
-                        document.body.appendChild(textingTo)
+                        
+                        const textingTo = document.getElementById('texting-to')
+                        if(textingTo === null) {
+                            const newTextingTo = document.createElement('p')
+                            newTextingTo.id = 'texting-to'
+                            newTextingTo.textContent = `You are texting ${result.textContent}`
+                            document.body.appendChild(newTextingTo)
+                            return
+                        }
+
+                        textingTo.textContent =   `You are texting to ${result.textContent}`
                     })
                     
                     container.appendChild(result)
                 }
-                break
+                break;
+                case EVENT.LoadChatHistoryResponse:
+                    const msgContainer = document.getElementById('msgs')
+                    msgContainer.innerHTML = ""
+                    data.body.sort((a, b) => { new Date(a.created_at) - new Date(b.created_at)})
+                    for(const msg of data.body){
+                        const incomingMsg = document.createElement('p')
+                        incomingMsg.textContent = `${msg.content}`
+                        if(msg.user_id === state.user.id){
+                            incomingMsg.textContent = `${msg.content}`
+                            incomingMsg.className = "users-msgs"
+                        }
+                        
+
+                        msgContainer.appendChild(incomingMsg)
+                    }
         }
     }
 }
 
 init()
+
+function scrollToBottom() {
+    const msgContainer = document.getElementById('msgs');
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+}
+
+function handleLoadingChatHistory(userId){
+    const event = {
+        type:EVENT.LoadChatHistoryRequest,
+        body:JSON.stringify(
+            {
+                user1_id:state.user.id,
+                user2_id:userId
+            }
+        )
+    }
+    console.log("Hello??");
+    
+    ws.send(JSON.stringify(event))
+}
 
 function handleSearch(){
     const username = document.getElementById('search').value

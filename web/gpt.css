@@ -1,0 +1,156 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #121212;
+    color: #fff;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Welcome Header */
+h1#welcome {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* Search Box */
+#search-stuff {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#search {
+    padding: 8px;
+    width: 250px;
+    border: none;
+    border-radius: 5px;
+    background-color: #222;
+    color: #fff;
+    font-size: 16px;
+}
+
+#search:focus {
+    outline: 2px solid #1db954;
+}
+
+/* Search Results */
+#searched-users {
+    margin-top: 10px;
+    width: 250px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: #222;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+#searched-users p {
+    padding: 10px;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
+
+#searched-users p:hover {
+    background: #333;
+}
+
+/* Chat List */
+#chats {
+    width: 300px;
+    background: #222;
+    padding: 10px;
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#chats h2 {
+    text-align: center;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+/* Individual Chat Preview */
+.chat-cards {
+    padding: 10px;
+    background: #333;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 5px;
+    transition: background 0.2s ease-in-out;
+    text-align: center;
+}
+
+.chat-cards:hover {
+    background: #444;
+}
+
+/* Message Input */
+#msg {
+    padding: 10px;
+    width: 250px;
+    border: none;
+    border-radius: 5px;
+    background-color: #222;
+    color: #fff;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+#msg:focus {
+    outline: 2px solid #1db954;
+}
+
+/* Send Button */
+button {
+    padding: 10px;
+    background: #1db954;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+button:hover {
+    background: #17a34a;
+}
+
+/* Messages Container */
+#msgs {
+    width: 300px;
+    background: #222;
+    padding: 10px;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 20px;
+}
+
+#msgs p {
+    background: #333;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    word-break: break-word;
+}
+
+
+.users-msgs{
+    background: #444;
+    text-align: right;
+}
+
+
+/* Typing Indicator */
+#texting-to {
+    font-style: italic;
+    color: #bbb;
+    margin-top: 10px;
+}
