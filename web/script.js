@@ -98,6 +98,7 @@ function init(){
                 const msgs = document.getElementById('msgs')
                 const incomingMsg = document.createElement('p')
                 incomingMsg.textContent = `${data.body.content}`
+                incomingMsg.className = "others-msgs"
                 msgs.appendChild(incomingMsg)
                 scrollToBottom()
 
@@ -180,6 +181,7 @@ function init(){
                     for(const msg of data.body){
                         const incomingMsg = document.createElement('p')
                         incomingMsg.textContent = `${msg.content}`
+                        incomingMsg.className = "others-msgs"
                         if(msg.user_id === state.user.id){
                             incomingMsg.textContent = `${msg.content}`
                             incomingMsg.className = "users-msgs"
@@ -209,7 +211,6 @@ function handleLoadingChatHistory(userId){
             }
         )
     }
-    console.log("Hello??");
     
     ws.send(JSON.stringify(event))
 }
@@ -223,7 +224,7 @@ function showMessageInput(){
     
     const sendButton = document.createElement('button')
     sendButton.textContent = "send"
-
+    sendButton.addEventListener('click', handleSend)
     container.appendChild(input)
     container.appendChild(sendButton)
 }
