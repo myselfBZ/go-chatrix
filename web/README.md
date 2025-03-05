@@ -17,7 +17,6 @@ This is a **not-so-serious** and **extremely unpolished** WebSocket-based chat c
 
 ## ⚡ Features (Or Lack Thereof)
 - Basic WebSocket messaging (barely functional)
-- No authentication handling (just vibes)
 - Messages sometimes get delivered (we think)
 - UI elements are created and removed at random (like magic)
 - Doesn't look good, doesn't feel good, but it *technically* works
@@ -36,3 +35,5 @@ This project is for **fun and experimentation only**. If you're here looking for
 
 ## CSS
 i asked different models to generate css for this so you can see LLMs name in CSS files
+
+**I am not a Front Developer**
