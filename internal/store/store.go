@@ -14,6 +14,12 @@ type Store struct{
         Create(*Chat) error
         ChatPreviews(int) ([]*ChatPreview, error)
         HasChatWith(user, other int) (error)
+        GetByUsersID(user1, user2 int) (*Chat, error)
+    }
+
+    Messages interface {
+        Create(*Message) error
+        GetByChatID(int) ([]*Message, error)
     }
 }
 
@@ -21,5 +27,6 @@ func New(db *sql.DB) *Store {
     return &Store{
         Users: &UserStore{db},
         Chats: &ChatStore{db},
+        Messages: &MessageStore{db},
     }
 }

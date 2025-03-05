@@ -141,6 +141,13 @@ func (s *Server) eventLoop() {
                     }
                     r.From = event.From
                     s.handleUserSearch(&r)
+                case LoadChatHistoryRequest:
+                    var p LoadChatHistoryReqPayload
+                    if err := json.Unmarshal([]byte(event.Body), &p); err != nil{
+                        log.Println("DEBUG: ", err)
+                        continue
+                    }
+                    s.handleLoadChatHistory(&p, event.From)
                 }
             }
         }()
@@ -155,46 +162,67 @@ func (s *Server) getClient(username string) *Client {
     return v.(*Client)
 }
 
-func (s *Server) handleText(t *IncomingMessagePayload) {
-
-    // let's check if the two had conversation before
-    err := s.store.Chats.HasChatWith(t.FromUserID, t.ToUserID)
+func (s *Server) ensureChatExists(fromID, toID int) (*store.Chat, error) {
+    chat, err := s.store.Chats.GetByUsersID(fromID, toID)
     if err != nil{
-        if !errors.Is(err, sql.ErrNoRows){
-            log.Println("DEBUG: ", err)
-            return
+
+        if errors.Is(err, sql.ErrNoRows){
+
+            chat := &store.Chat{UserID: fromID, With: toID}
+            if err := s.store.Chats.Create(chat); err != nil{
+                return nil, err
+            }
+            return chat, nil
         }
-        chat := &store.Chat{UserID: t.FromUserID, With: t.ToUserID}
-        if err := s.store.Chats.Create(chat); err != nil{
-            log.Println("DEBUG: couldn't create a conversation", err)
-            // don't proceed!
-            // TODO handle this gracefully
-            return
-        }
+
+        return  nil, err
     }
 
+    return chat, nil
+}
+
+func (s *Server) storeMessage(msg *IncomingMessagePayload, chatID int) error{
+    message := &store.Message{Content: msg.Content, ChatID: chatID, UserID: msg.FromUserID}
+    err := s.store.Messages.Create(message)
+    return err
+}
+
+func (s *Server) sendMessage(ctx context.Context, t *IncomingMessagePayload) {
     from, to := s.getClient(t.From), s.getClient(t.To)
-    if to == nil {
-        // then write to the database
-        return
-    }
 
-    ctx := context.TODO()
-    
     out := &OutGoingMessage{
-        From: t.From,
-        Content: t.Content,
+        From:      t.From,
+        Content:   t.Content,
         Timestamp: time.Now().Unix(),
     }
 
-    // TODO we need to get rid of this 
-    log.Println("DEBUG: ", out.Content)
-    log.Println("DEBUG: ", out.From)
-
-    if err := wsjson.Write(ctx, to.Conn, &ServerMessage{Type: TEXT, Body: out}); err != nil && from != nil{
-        from.Conn.Write(context.TODO(), websocket.MessageText, []byte("message couldn't be sent"))
+    if to != nil {
+        if err := wsjson.Write(ctx, to.Conn, &ServerMessage{Type: TEXT, Body: out}); err != nil && from != nil {
+            from.Conn.Write(ctx, websocket.MessageText, []byte("{\"type\":3, \"error\":\"couldn't write json\"}"))
+        }
     }
-    wsjson.Write(context.TODO(), from.Conn, ServerMessage{Type: DELIVERED, Body: &Delivered{TimeStamp: out.Timestamp, Mark: t.MessageMark}})
+
+    if from != nil {
+        wsjson.Write(ctx, from.Conn, ServerMessage{Type: DELIVERED, Body: &Delivered{TimeStamp: out.Timestamp, Mark: t.MessageMark}})
+    }
+}
+
+func (s *Server) handleText(t *IncomingMessagePayload) {
+
+    chat, err := s.ensureChatExists(t.FromUserID, t.ToUserID)
+    if err != nil{
+        log.Println("DEBUG: couldn't ensure chat exists", err)
+        return
+    }
+
+    err = s.storeMessage(t, chat.ID)
+    if err != nil{
+        log.Println("DEBUG: couldn't store the message: ", err)
+        return
+    }
+    
+    ctx := context.TODO()
+    s.sendMessage(ctx, t)
 }
 
 func (s *Server) handleUserSearch(query *SearchUserPayload) {
@@ -206,6 +234,25 @@ func (s *Server) handleUserSearch(query *SearchUserPayload) {
     client := s.getClient(query.From)
     if client != nil{
         wsjson.Write(context.TODO(), client.Conn, ServerMessage{Type: SearchUserResponse, Body: users})
+    }
+}
+
+func (s *Server) handleLoadChatHistory(p *LoadChatHistoryReqPayload, from string) {
+    chat, err := s.store.Chats.GetByUsersID(p.User1ID, p.User2ID)
+    if err != nil{
+        log.Println("DEBUG: ", err)
+        return
+    }
+    messages, err := s.store.Messages.GetByChatID(chat.ID)
+    if err != nil{
+        log.Println("DEBUG: ", err)
+        return
+    }
+
+    client := s.getClient(from)
+
+    if client != nil{
+        wsjson.Write(context.TODO(), client.Conn, ServerMessage{Type: LoadChatHistoryResponse, Body: messages})
     }
 }
 

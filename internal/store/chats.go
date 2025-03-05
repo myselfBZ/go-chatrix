@@ -51,6 +51,16 @@ func (c *ChatStore) ChatPreviews(userID int) ([]*ChatPreview, error) {
     return chats, nil
 }
 
+func (c *ChatStore) GetByUsersID(user1, user2 int) (*Chat, error) {
+    q := `SELECT id, user_1_id, user_2_id FROM chats WHERE (user_1_id = $1 AND user_2_id = $2) OR (user_1_id = $2 AND user_2_id = $1)`
+    var chat Chat
+    err := c.db.QueryRow(q, user1, user2).Scan(&chat.ID, &chat.UserID, &chat.With)
+    if err != nil {
+        return nil, err
+    }
+    return &chat, nil
+}
+
 
 func (c *ChatStore) HasChatWith(user, other int) (error) {
     q := `SELECT 1 
