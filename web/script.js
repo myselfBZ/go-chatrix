@@ -206,20 +206,20 @@ function init(){
                             readNewMessages.push(msg.id)
                         }
                         if(msg.user_id === state.user.id){
+                            console.log(msg.read)
                             
                             const viewableMsgContainer = document.createElement('div')
                             const viewableMsg = document.createElement('p')
                             const stateOfMsg = document.createElement('small')
-                            stateOfMsg.innerText = "sent"
                             
                             viewableMsg.innerText = msg.content
                             viewableMsg.className = "users-msgs"
-                            
+                            stateOfMsg.id = msg.id      
                             viewableMsgContainer.appendChild(viewableMsg)
                             viewableMsgContainer.appendChild(stateOfMsg)
                             msgContainer.appendChild(viewableMsgContainer)
                             if(msg.read){
-                                viewableMsg.innerText = "read"
+                                stateOfMsg.innerText = "read"
                             }
                             continue
                             

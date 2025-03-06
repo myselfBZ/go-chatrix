@@ -17,28 +17,31 @@ import (
 	"github.com/myselfBZ/chatrix/internal/store"
 )
 
-type errorEnv struct {
-	Error string `json:"error"`
-}
 
 type Client struct {
 	Conn *websocket.Conn
 }
 
 func (s *Server) handleHandShake(conn *websocket.Conn) {
+
+    ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+    defer cancel()
+
 	type envelope struct {
 		Token string `json:"token"`
 	}
 
 	var tok envelope
-	if err := wsjson.Read(context.TODO(), conn, &tok); err != nil {
-		wsjson.Write(context.TODO(), conn, ServerMessage{Type: ERR, Body: errorEnv{Error: err.Error()}})
+	if err := wsjson.Read(ctx, conn, &tok); err != nil {
+        wsInvalidJSONPayload(ctx, conn)
+        conn.Close(websocket.CloseStatus(err), "invalid json payload")
 		return
 	}
 
 	jwtToken, err := s.auth.ValidateToken(tok.Token)
+
 	if err != nil {
-		wsjson.Write(context.TODO(), conn, ServerMessage{Type: ERR, Body: errorEnv{Error: errors.New("invalid token").Error()}})
+		wsjson.Write(ctx, conn, ServerMessage{Type: ERR, Body: ErrEnvelope{Error: errors.New("invalid token")}})
 		conn.Close(websocket.StatusAbnormalClosure, "")
 		return
 	}
@@ -46,24 +49,33 @@ func (s *Server) handleHandShake(conn *websocket.Conn) {
 	claims, _ := jwtToken.Claims.(jwt.MapClaims)
 
 	userID, err := strconv.Atoi(fmt.Sprintf("%.f", claims["sub"]))
+
 	if err != nil {
-		wsjson.Write(context.TODO(), conn, ServerMessage{Type: ERR, Body: errorEnv{Error: errors.New("invalid user id").Error()}})
-		conn.Close(websocket.StatusAbnormalClosure, "")
+		conn.Close(websocket.StatusPolicyViolation, "invalid user id")
 		return
 	}
 
 	user, err := s.store.Users.GetByID(userID)
 
 	if err != nil {
-		log.Println("DEBUG", err.Error())
-		wsjson.Write(context.TODO(), conn, ServerMessage{Type: ERR, Body: errorEnv{Error: errors.New("user doesn't exist").Error()}})
-		conn.Close(websocket.StatusAbnormalClosure, "")
+        if errors.Is(err, sql.ErrNoRows) {
+            wsjson.Write(ctx, conn, ServerMessage{Type: ERR, Body: ErrEnvelope{Error: errors.New("user doesn't exist")}})
+            conn.Close(websocket.StatusPolicyViolation, "")
+            return
+        } 
+
+        log.Println("DEBUG", err.Error())
+		conn.Close(websocket.StatusInternalError, "")
 		return
 	}
 
-	if err := wsjson.Write(context.TODO(), conn, ServerMessage{Type: PROFILE_INFO, Body: user}); err != nil {
-		log.Println("DEBUG: couldn't write to conn", err)
-		conn.Close(websocket.StatusAbnormalClosure, "")
+	if err := wsjson.Write(ctx, conn, ServerMessage{Type: PROFILE_INFO, Body: user}); err != nil {
+        if websocket.CloseStatus(err) == -1{
+            conn.Close(websocket.StatusInternalError, "couldn't write json")
+            return
+        }
+        // client diconnected
+        return
 	}
 
 	log.Printf("%s has just gone online", user.Username)
@@ -71,25 +83,40 @@ func (s *Server) handleHandShake(conn *websocket.Conn) {
 	chatPreviews, err := s.store.Chats.ChatPreviews(user.ID)
 
 	if err != nil {
-		log.Println(len(chatPreviews))
-		log.Println("DEBUG: ", err)
-		wsjson.Write(context.TODO(), conn, ServerMessage{Type: ERR, Body: errorEnv{Error: "couldnt load past chats"}})
+        switch err{
+            case sql.ErrNoRows:
+                break
+            default:
+                conn.Close(websocket.StatusInternalError, "")
+                return
+        }
 	}
 
-	// send chats
-	wsjson.Write(context.TODO(), conn, ServerMessage{Type: CHATPREVIEWS, Body: chatPreviews})
+	if err := wsjson.Write(ctx, conn, ServerMessage{Type: CHATPREVIEWS, Body: chatPreviews}); err != nil {
+        if websocket.CloseStatus(err) == -1{
+            conn.Close(websocket.StatusInternalError, "couldn't write json")
+            return
+        }
+        // client diconnected
+        return
+	}
 
 	s.wsConns.Store(user.Username, &Client{Conn: conn})
 	go s.readLoop(conn, user)
 }
 
 func (s *Server) readLoop(c *websocket.Conn, user *store.User) {
+    ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() 
 	for {
 		var event Event
-		if err := wsjson.Read(context.TODO(), c, &event); err != nil {
-			log.Println("DEBUG: err", err)
-			s.wsConns.Delete(user.Username)
-			return
+		if err := wsjson.Read(ctx, c, &event); err != nil {
+            if IsCloseErr(ctx, err){
+                s.wsConns.Delete(user.Username)
+                return
+            }
+            wsInvalidJSONPayload(ctx, c)
+            continue
 		}
 		event.From = user.Username
 		event.FromID = user.ID
@@ -113,13 +140,16 @@ func (s *Server) eventLoop() {
 	for i := 0; i < 5; i++ {
 		go func() {
 			for event := range s.eventChan {
+                errContext, cancel := context.WithCancel(context.Background())
+                defer cancel()
 				switch event.Type {
 				case TEXT:
 					var t IncomingMessagePayload
 					if err := json.Unmarshal([]byte(event.Body), &t); err != nil {
 						client := s.getClient(event.From)
 						if client != nil {
-							wsjson.Write(context.TODO(), client.Conn, errorEnv{Error: "coulnd't parse message"})
+                            wsInvalidJSONPayload(errContext, client.Conn)
+                            cancel()
 							continue
 						}
 					}
@@ -131,7 +161,11 @@ func (s *Server) eventLoop() {
 				case SearchUserRequest:
 					var r SearchUserPayload
 					if err := json.Unmarshal([]byte(event.Body), &r); err != nil {
-						log.Println("DEBUG: ", err)
+						client := s.getClient(event.From)
+						if client != nil {
+                            wsInvalidJSONPayload(errContext, client.Conn)
+                            cancel()
+						}
 						continue
 					}
 					r.From = event.From
@@ -139,20 +173,29 @@ func (s *Server) eventLoop() {
 				case LoadChatHistoryRequest:
 					var p LoadChatHistoryReqPayload
 					if err := json.Unmarshal([]byte(event.Body), &p); err != nil {
-						log.Println("DEBUG: ", err)
-						continue
+						client := s.getClient(event.From)
+						if client != nil {
+                            wsInvalidJSONPayload(errContext, client.Conn)
+                            cancel()
+						}
+                        continue
 					}
 					s.handleLoadChatHistory(&p, event.From)
                 case MARK_READ:
 					var p MarkReadRequestPayload 
 					if err := json.Unmarshal([]byte(event.Body), &p); err != nil {
-						log.Println("DEBUG: ", err)
+						client := s.getClient(event.From)
+						if client != nil {
+                            wsInvalidJSONPayload(errContext, client.Conn)
+                            cancel()
+						}
 						continue
 					}
                     p.From = event.From
                     s.handleMarkRead(&p)
 
 				}
+                cancel()
 			}
 		}()
 	}
@@ -217,32 +260,41 @@ func (s *Server) sendMessage(ctx context.Context, msgID int, t *IncomingMessageP
 }
 
 func (s *Server) handleText(t *IncomingMessagePayload) {
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
 
 	chat, err := s.ensureChatExists(t.FromUserID, t.ToUserID)
 	if err != nil {
-		log.Println("DEBUG: couldn't ensure chat exists", err)
+        s.sendServerMessage(ctx, t.From, &ServerMessage{ERR, InternalServerError})
 		return
 	}
 
 	id, err := s.storeMessage(t, chat.ID)
+
 	if err != nil {
 		log.Println("DEBUG: couldn't store the message: ", err)
+        s.sendServerMessage(ctx, t.From, &ServerMessage{ERR, InternalServerError})
 		return
 	}
 
-	ctx := context.TODO()
 	s.sendMessage(ctx, id, t)
 }
 
 func (s *Server) handleUserSearch(query *SearchUserPayload) {
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
 	users, err := s.store.Users.SearchByUsername(query.Username)
 	if err != nil {
+        if errors.Is(err, sql.ErrNoRows){
+            s.sendServerMessage(ctx, query.From, &ServerMessage{ERR, errors.New("user not found")})
+            return
+        }
 		log.Println("DEBUG: ", err)
 		return
 	}
 	client := s.getClient(query.From)
 	if client != nil {
-		wsjson.Write(context.TODO(), client.Conn, ServerMessage{Type: SearchUserResponse, Body: users})
+		wsjson.Write(ctx, client.Conn, ServerMessage{Type: SearchUserResponse, Body: users})
 	}
 }
 
@@ -284,10 +336,13 @@ func (s *Server) sendServerMessage(ctx context.Context, to string, msg *ServerMe
 }
 
 func (s *Server) handleMarkRead(m *MarkReadRequestPayload) {
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
 	err := s.store.Messages.MarkRead(m.MessageIds)
 	if err != nil {
 		log.Println("DEBUG: ", err)
+        s.sendServerMessage(ctx, m.From, &ServerMessage{ERR, InternalServerError})
 		return
 	}
-	s.sendServerMessage(context.TODO(), m.To, &ServerMessage{Type: MARK_READ, Body: m.MessageIds})
+    s.sendServerMessage(ctx, m.To, &ServerMessage{Type: MARK_READ, Body: m.MessageIds})
 }
