@@ -24,7 +24,6 @@ Chatrix is a **real-time, event-driven messaging backend** built using **Go** an
 Make sure you have the following installed:
 - Go 1.21+
 - PostgreSQL
-- Redis (optional, for scalability)
 
 ### Installation
 
