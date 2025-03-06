@@ -42,12 +42,14 @@ type IncomingMessagePayload struct {
 }
 
 type OutGoingMessage struct {
+    MsgID     int   `json:"msg_id"`
 	From      string `json:"from"`
 	Content   string `json:"content"`
 	Timestamp int64  `json:"timestamp"`
 }
 
 type Delivered struct {
+	MessageID int   `json:"message_id"`
 	Mark      int   `json:"mark"`
 	TimeStamp int64 `json:"timestamp"`
 }
@@ -57,20 +59,17 @@ type SearchUserPayload struct {
 	From     string `json:"-"`
 }
 
-// not now baby
-type MarkRead struct {
-	MessageId int `json:"message_id"`
-	// the time message was read
-	At int64
+// Reading many messages in one go
+type MarkReadRequestPayload struct {
+	MessageIds []int `json:"message_ids"`
 
-	To   string
+	To   string     `json:"to"`
 	From string
 }
 
-
-type LoadChatHistoryReqPayload struct{
-    User1ID int `json:"user1_id"`
-    User2ID int   `json:"user2_id"`
+type LoadChatHistoryReqPayload struct {
+	User1ID int `json:"user1_id"`
+	User2ID int `json:"user2_id"`
 }
 
 type ChatHistory struct {

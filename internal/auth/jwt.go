@@ -41,4 +41,3 @@ func (a *JWTAuthenticator) ValidateToken(token string) (*jwt.Token, error) {
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),
 	)
 }
-

@@ -48,4 +48,3 @@ func (s *Server) unauthorizedBasicErrorResponse(w http.ResponseWriter, r *http.R
 
 	writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 }
-

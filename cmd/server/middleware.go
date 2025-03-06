@@ -10,8 +10,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const(
-    UserKey = "user"
+const (
+	UserKey = "user"
 )
 
 func (app *Server) AuthTokenMiddleware(next http.Handler) http.Handler {
@@ -37,7 +37,7 @@ func (app *Server) AuthTokenMiddleware(next http.Handler) http.Handler {
 
 		claims, _ := jwtToken.Claims.(jwt.MapClaims)
 
-        userID, err := strconv.Atoi(fmt.Sprintf("%.f", claims["sub"]))
+		userID, err := strconv.Atoi(fmt.Sprintf("%.f", claims["sub"]))
 		if err != nil {
 			app.unauthorizedErrorResponse(w, r, err)
 			return

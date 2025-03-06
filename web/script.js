@@ -1,7 +1,7 @@
 // Dear future me, i cannot express how sorry i am for writing this piece of sh*t
 
 
-const addr = "http://localhost:6969/ws"
+const addr = "http://192.168.1.22:6969/ws"
 const ws = new WebSocket(addr)
 
 let state = {
@@ -23,7 +23,7 @@ let pendingMessages = {};
 const EVENT = {
     Text:0,
     Delivered:1,
-    // MarkRead:2,
+    MarkRead:2,
     Err:3,
     ProfileInfo: 4,
     Chatprview:5,
@@ -44,6 +44,7 @@ function handleSend(){
         setTimeout(() => {
             document.body.removeChild(errorMessage)
         }, 3000)
+        document.body.scrollTop = document.body.scrollHeight
         return
     }
     const msg = document.getElementById("msg").value
@@ -61,11 +62,19 @@ function handleSend(){
     }
     ws.send(JSON.stringify(event))
 
+    const viewableMsgContainer = document.createElement('div')
     const viewableMsg = document.createElement('p')
+    const stateOfMsg = document.createElement('small')
+    stateOfMsg.innerText = "sending..."
+
     viewableMsg.innerText = msg
     viewableMsg.className = "users-msgs"
-    pendingMessages[mark] = viewableMsg
-    document.getElementById('msgs').appendChild(viewableMsg)
+    
+    viewableMsgContainer.appendChild(viewableMsg)
+    viewableMsgContainer.appendChild(stateOfMsg)
+
+    pendingMessages[mark] = viewableMsgContainer
+    document.getElementById('msgs').appendChild(viewableMsgContainer)
 
     document.getElementById("msg").value = ""
     scrollToBottom()
@@ -100,8 +109,9 @@ function init(){
                 incomingMsg.textContent = `${data.body.content}`
                 incomingMsg.className = "others-msgs"
                 msgs.appendChild(incomingMsg)
+                console.log("i got a message with id: ", data.body.msg_id)
+                readMessages([data.body.msg_id])
                 scrollToBottom()
-
 
                 break;
 
@@ -115,9 +125,11 @@ function init(){
 
             case EVENT.Delivered:
                 const htmlElement = pendingMessages[data.body.mark]
-                const msgStatus = document.createElement('small')
-                msgStatus.textContent = " ✅"
-                htmlElement.appendChild(msgStatus)
+                const msgState = htmlElement.getElementsByTagName('small')[0]
+                msgState.innerText = "sent"                
+                msgState.id = data.body.message_id
+                
+                
                 delete pendingMessages[data.body.mark]
                 break
 
@@ -139,7 +151,7 @@ function init(){
                         showMessageInput()
 
                     })
-                    console.log(i)
+                    
                     chatCard.textContent = i.username
                     chatCard.className = "chat-cards"
                     div.appendChild(chatCard)
@@ -153,6 +165,7 @@ function init(){
                 if(container.innerHTML != "") container.innerHTML = "";
                 for (const user of data.body){
                     const result = document.createElement('p')
+
                     result.textContent = user.username
 
                     result.addEventListener('click', () => {
@@ -177,24 +190,74 @@ function init(){
                 case EVENT.LoadChatHistoryResponse:
                     const msgContainer = document.getElementById('msgs')
                     msgContainer.innerHTML = ""
+                    
+                    if(data.body === null) {
+                        return
+                    };
+
                     data.body.sort((a, b) => { new Date(a.created_at) - new Date(b.created_at)})
+                    
+
+                    
+                    let readNewMessages = [];
+
                     for(const msg of data.body){
+                        if(!msg.read){
+                            readNewMessages.push(msg.id)
+                        }
+                        if(msg.user_id === state.user.id){
+                            
+                            const viewableMsgContainer = document.createElement('div')
+                            const viewableMsg = document.createElement('p')
+                            const stateOfMsg = document.createElement('small')
+                            stateOfMsg.innerText = "sent"
+                            
+                            viewableMsg.innerText = msg.content
+                            viewableMsg.className = "users-msgs"
+                            
+                            viewableMsgContainer.appendChild(viewableMsg)
+                            viewableMsgContainer.appendChild(stateOfMsg)
+                            msgContainer.appendChild(viewableMsgContainer)
+                            if(msg.read){
+                                viewableMsg.innerText = "read"
+                            }
+                            continue
+                            
+                        }
                         const incomingMsg = document.createElement('p')
+                        incomingMsg.id = msg.id
                         incomingMsg.textContent = `${msg.content}`
                         incomingMsg.className = "others-msgs"
-                        if(msg.user_id === state.user.id){
-                            incomingMsg.textContent = `${msg.content}`
-                            incomingMsg.className = "users-msgs"
-                        }
                         
 
                         msgContainer.appendChild(incomingMsg)
                     }
+                    readMessages(readNewMessages)
+                    break;
+                case EVENT.MarkRead:
+                    for(const id of data.body){
+                        
+                        
+                        const msg = document.getElementById(id.toString())
+                        msg.innerText = "read"
+                    }
+                    break;
         }
     }
 }
 
 init()
+
+function readMessages(msgsArr){
+    const jsonData = JSON.stringify({
+        type:EVENT.MarkRead,
+        body:JSON.stringify({
+            to:state.to.username,
+            message_ids:msgsArr
+        })
+    })
+    ws.send(jsonData)
+}
 
 function scrollToBottom() {
     const msgContainer = document.getElementById('msgs');
@@ -221,6 +284,7 @@ function showMessageInput(){
     const input = document.createElement('input')
     input.type = "text"
     input.id = "msg"
+    input.placeholder = "Message"
     
     const sendButton = document.createElement('button')
     sendButton.textContent = "send"

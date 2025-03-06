@@ -10,27 +10,27 @@ body {
     background-color: #121212;
     color: #e0e0e0;
     padding: 10px;
-  }
-  
-  /* Welcome Title */
-  #welcome {
+}
+
+/* Welcome Title */
+#welcome {
     margin-bottom: 20px;
     font-size: 2em;
     color: #bbb;
     font-weight: 300;
     text-align: center;
-  }
-  
-  /* Search Section */
-  #search-stuff {
+}
+
+/* Search Section */
+#search-stuff {
     display: flex;
     flex-direction: column;
     margin-bottom: 20px;
     width: 90%;
     max-width: 300px;
-  }
-  
-  #search {
+}
+
+#search {
     padding: 12px;
     border: 1px solid #444;
     border-radius: 25px;
@@ -40,9 +40,9 @@ body {
     background-color: #222;
     color: #e0e0e0;
     transition: border-color 0.3s ease;
-  }
-  
-  #searched-users {
+}
+
+#searched-users {
     border: 1px solid #444;
     border-radius: 8px;
     padding: 15px;
@@ -51,10 +51,10 @@ body {
     background-color: #222;
     width: 90%;
     max-width: 300px;
-  }
-  
-  /* Chats List */
-  #chats {
+}
+
+/* Chats List */
+#chats {
     border: 1px solid #444;
     border-radius: 8px;
     padding: 15px;
@@ -64,10 +64,10 @@ body {
     max-height: 350px;
     overflow-y: auto;
     background-color: #222;
-  }
-  
-  /* Messages Container */
-  #msgs {
+}
+
+/* Messages Container */
+#msgs {
     border: 1px solid #444;
     border-radius: 8px;
     padding: 20px;
@@ -80,16 +80,16 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
-  }
-  
-  /* Message Input */
-  #message-input {
+}
+
+/* Message Input */
+#message-input {
     display: flex;
     width: 90%;
     max-width: 500px;
-  }
-  
-  #message-input input {
+}
+
+#message-input input {
     flex-grow: 1;
     padding: 12px 18px;
     border: 1px solid #444;
@@ -97,95 +97,88 @@ body {
     margin-right: 10px;
     background-color: #222;
     color: #e0e0e0;
-  }
-  
-  #message-input button {
+}
+
+#message-input button {
     padding: 12px 25px;
     background-color: #34c759;
     color: white;
     border: none;
     border-radius: 25px;
     cursor: pointer;
-  }
-  
-  /* Message States */
-  .users-msgs-container, .others-msgs-container {
+}
+
+/* Message States */
+.users-msgs-container, .others-msgs-container {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    width: 100%;
-  }
-  
-  .users-msgs-container {
+}
+
+.users-msgs-container {
     align-items: flex-end;
-  }
-  
-  .others-msgs, .users-msgs {
+}
+
+.others-msgs, .users-msgs {
     max-width: 70%;
     padding: 12px 18px;
     border-radius: 18px;
     word-wrap: break-word;
     box-shadow: 0 1px 3px rgba(255, 255, 255, 0.1);
-  }
-  
-  .others-msgs {
+}
+
+.others-msgs {
     background-color: #333;
     color: #e0e0e0;
     align-self: flex-start;
-  }
-  
-  .users-msgs {
+}
+
+.users-msgs {
     background-color: #34c759;
     color: white;
     align-self: flex-end;
-    margin-left: auto; /* Add this to push messages to the right */
-  }
-  
-  /* Fixed container for user messages */
-  div:has(> .users-msgs) {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    width: 100%;
-  }
-  
-  /* Message State Indicator */
-  .message-state {
+}
+
+/* Message State Indicator */
+.message-state {
     font-size: 0.8em;
     color: #888;
-  }
-  
-  /* Chat Cards */
-  .chat-cards {
+}
+
+/* Chat Cards */
+.chat-cards {
     padding: 12px;
     border-bottom: 1px solid #333;
     cursor: pointer;
     margin: 8px 0;
     transition: background-color 0.3s ease;
-  }
-  
-  /* Error Messages */
-  .error-message {
+}
+
+/* Error Messages */
+.error-message {
     color: red;
     font-size: 0.9em;
     margin-top: 5px;
     text-align: center;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 600px) {
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
     #welcome {
-      font-size: 1.8em;
+        font-size: 1.8em;
     }
+
     #msgs {
-      height: 300px;
+        height: 300px;
     }
+
     #message-input {
-      flex-direction: column;
-      gap: 10px;
+        flex-direction: column;
+        gap: 10px;
     }
+
     #message-input input {
-      margin-right: 0;
+        margin-right: 0;
     }
-  }
+}

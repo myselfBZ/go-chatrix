@@ -1,5 +1,4 @@
-package main 
-
+package main
 
 import (
 	"encoding/json"
@@ -30,14 +29,9 @@ func readJSON(w http.ResponseWriter, r *http.Request, data any) error {
 	return decoder.Decode(data)
 }
 
-
-func writeJSONError(w http.ResponseWriter, status int,  err string) {
-    type envelope struct{
-        Error string `json:"error"`
-    }
-    writeJSON(w, status, &envelope{Error: err})
+func writeJSONError(w http.ResponseWriter, status int, err string) {
+	type envelope struct {
+		Error string `json:"error"`
+	}
+	writeJSON(w, status, &envelope{Error: err})
 }
-
-
-
-
