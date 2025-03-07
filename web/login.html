@@ -112,7 +112,8 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { SERVERADDR } from './constants.js'
         document.getElementById('login-form').addEventListener('submit', function(event) {
             event.preventDefault();
             
@@ -124,7 +125,7 @@
             errorMessage.style.display = 'none';
             errorMessage.textContent = '';
             
-            fetch('http://192.168.1.22:6969/auth/login', {
+            fetch(`${SERVERADDR}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

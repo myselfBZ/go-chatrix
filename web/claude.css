@@ -189,3 +189,36 @@ body {
       margin-right: 0;
     }
   }
+
+
+
+  #picker-container {
+    position: absolute;
+    z-index: 9999; /* Ensure it's above everything */
+    display: none;
+    background: #222; /* Background to separate it visually */
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    padding: 5px;
+}
+
+emoji-picker {
+    width: 320px;
+    height: 400px;
+}
+
+
+#emoji-toggler{
+  padding: 10px 16px;
+  background-color: #34c759;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease-in-out, transform 0.1s ease-in-out;
+}

@@ -24,7 +24,7 @@ type Client struct {
 
 func (s *Server) handleHandShake(conn *websocket.Conn) {
 
-    ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), time.Second * 5)
     defer cancel()
 
 	type envelope struct {

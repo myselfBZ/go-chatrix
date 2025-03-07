@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gopher Chat</title>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
     <link rel="stylesheet" href="claude.css">
 </head>
 <body>
     <h1 id="welcome">Welcome</h1>
     <div id="search-stuff">
-        <input type="text"  id="search" onchange="handleSearch()" placeholder="search">
+        <input type="text"  id="search" placeholder="search">
         
         <div id="searched-users"></div>
     </div>
@@ -25,8 +26,7 @@
     </div>
 
     <div id="message-input"></div>
-
-
-    <script src="script.js"></script>
+    
+    <script src="script.js" type="module"></script>
 </body>
 </html>

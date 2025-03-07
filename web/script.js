@@ -1,7 +1,24 @@
 // Dear future me, i cannot express how sorry i am for writing this piece of sh*t
+import { SERVERADDR } from "./constants.js"
 
 
-const addr = "http://192.168.1.22:6969/ws"
+const svgDelivered = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M5 12l5 5L20 7"></path>
+</svg>
+`
+const svgRead = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M5 13l4 4L19 7"></path>
+  <path d="M11 13l4 4L23 7"></path>
+</svg>
+`
+
+const svgSending = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="10"></circle>
+  <path d="M12 6v6l4 2"></path>
+</svg>
+`
+
+const addr = `${SERVERADDR}/ws`
 const ws = new WebSocket(addr)
 
 let state = {
@@ -65,7 +82,7 @@ function handleSend(){
     const viewableMsgContainer = document.createElement('div')
     const viewableMsg = document.createElement('p')
     const stateOfMsg = document.createElement('small')
-    stateOfMsg.innerText = "sending..."
+    stateOfMsg.innerHTML =  svgSending
 
     viewableMsg.innerText = msg
     viewableMsg.className = "users-msgs"
@@ -81,6 +98,7 @@ function handleSend(){
 }
 
 function init(){
+    document.getElementById('search').addEventListener('change', handleSearch)
     const token = localStorage.getItem('token')
     if (token == null) {
         window.location.href = "/login.html"
@@ -126,7 +144,7 @@ function init(){
             case EVENT.Delivered:
                 const htmlElement = pendingMessages[data.body.mark]
                 const msgState = htmlElement.getElementsByTagName('small')[0]
-                msgState.innerText = "sent"                
+                msgState.innerHTML = svgDelivered                
                 msgState.id = data.body.message_id
                 
                 
@@ -219,8 +237,9 @@ function init(){
                             viewableMsgContainer.appendChild(stateOfMsg)
                             msgContainer.appendChild(viewableMsgContainer)
                             if(msg.read){
-                                stateOfMsg.innerText = "read"
+                                stateOfMsg.innerHTML = svgRead
                             }
+                            scrollToBottom()
                             continue
                             
                         }
@@ -231,6 +250,7 @@ function init(){
                         
 
                         msgContainer.appendChild(incomingMsg)
+                        scrollToBottom()
                     }
                     readMessages(readNewMessages)
                     break;
@@ -239,7 +259,7 @@ function init(){
                         
                         
                         const msg = document.getElementById(id.toString())
-                        msg.innerText = "read"
+                        msg.innerHTML = svgRead
                     }
                     break;
         }
@@ -288,11 +308,50 @@ function showMessageInput(){
     
     const sendButton = document.createElement('button')
     sendButton.textContent = "send"
+
+    const emojiButton = document.createElement('button')
+    emojiButton.innerText = "🙂"
+    emojiButton.id = "emoji-toggler"
     sendButton.addEventListener('click', handleSend)
+    emojiButton.addEventListener('click', handleEmojiToggle)
     container.appendChild(input)
     container.appendChild(sendButton)
+    container.appendChild(emojiButton)
 }
 
+function handleEmojiToggle() {
+    let pickerContainer = document.getElementById('picker-container');
+
+    if (!pickerContainer) {
+        // Create container
+        pickerContainer = document.createElement('div');
+        pickerContainer.id = 'picker-container';
+        
+        // Create emoji picker
+        const picker = document.createElement('emoji-picker');
+        picker.id = 'emoji-picker';
+        picker.addEventListener("emoji-click", (e) => {
+            const msgInput = document.getElementById('msg'); // Ensure input field ID is correct
+            if (msgInput) {
+                msgInput.value += e.detail.unicode;
+            }
+        })
+
+        // Append to container
+        pickerContainer.appendChild(picker);
+        document.body.appendChild(pickerContainer);
+    }
+
+    // Toggle visibility
+    pickerContainer.style.display = pickerContainer.style.display === 'none' ? 'block' : 'none';
+
+    // Position it near the input field
+    const msgInput = document.getElementById('message-input');
+    const rect = msgInput.getBoundingClientRect();
+
+    pickerContainer.style.top = `${rect.top + window.scrollY - 420}px`; // Position above input
+    pickerContainer.style.left = `${rect.left + window.scrollX}px`; // Align with input left
+}
 
 function handleSearch(){
     const username = document.getElementById('search').value
