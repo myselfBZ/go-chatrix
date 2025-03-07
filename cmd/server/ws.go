@@ -22,10 +22,7 @@ type Client struct {
 	Conn *websocket.Conn
 }
 
-func (s *Server) handleHandShake(conn *websocket.Conn) {
-
-    ctx, cancel := context.WithTimeout(context.Background(), time.Second * 5)
-    defer cancel()
+func (s *Server) handleHandShake(ctx context.Context, conn *websocket.Conn) {
 
 	type envelope struct {
 		Token string `json:"token"`
@@ -106,8 +103,7 @@ func (s *Server) handleHandShake(conn *websocket.Conn) {
 }
 
 func (s *Server) readLoop(c *websocket.Conn, user *store.User) {
-    ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() 
+    ctx := context.Background()
 	for {
 		var event Event
 		if err := wsjson.Read(ctx, c, &event); err != nil {
@@ -132,7 +128,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 		s.badRequestResponse(w, r, err)
 		return
 	}
-	s.handleHandShake(conn)
+	s.handleHandShake(r.Context(), conn)
 }
 
 func (s *Server) eventLoop() {
@@ -140,7 +136,7 @@ func (s *Server) eventLoop() {
 	for i := 0; i < 5; i++ {
 		go func() {
 			for event := range s.eventChan {
-                errContext, cancel := context.WithCancel(context.Background())
+                errContext, cancel := context.WithTimeout(context.Background(), time.Second * 5)
                 defer cancel()
 				switch event.Type {
 				case TEXT:
@@ -299,32 +295,24 @@ func (s *Server) handleUserSearch(query *SearchUserPayload) {
 }
 
 func (s *Server) handleLoadChatHistory(p *LoadChatHistoryReqPayload, from string) {
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
 	chat, err := s.store.Chats.GetByUsersID(p.User1ID, p.User2ID)
 	if err != nil {
 		if errors.Is(sql.ErrNoRows, err) {
-			client := s.getClient(from)
-			// if chat doesn't exist send nothing
-			if client != nil {
-				wsjson.Write(context.TODO(), client.Conn, ServerMessage{Type: LoadChatHistoryResponse, Body: nil})
-				return
-			}
-
-			log.Println("DEBUG: ", err)
+            s.sendServerMessage(ctx, from, &ServerMessage{Type: LoadChatHistoryResponse, Body: nil})
 			return
 		}
+
+        s.sendServerMessage(ctx, from, &ServerMessage{Type: ERR, Body: InternalServerError})
 		return
 	}
 	messages, err := s.store.Messages.GetByChatID(chat.ID)
 	if err != nil {
-		log.Println("DEBUG: ", err)
+        s.sendServerMessage(ctx, from, &ServerMessage{Type: ERR, Body: InternalServerError })
 		return
 	}
-
-	client := s.getClient(from)
-
-	if client != nil {
-		wsjson.Write(context.TODO(), client.Conn, ServerMessage{Type: LoadChatHistoryResponse, Body: messages})
-	}
+    s.sendServerMessage(ctx, from, &ServerMessage{Type: LoadChatHistoryResponse, Body: messages})
 }
 
 func (s *Server) sendServerMessage(ctx context.Context, to string, msg *ServerMessage) {
