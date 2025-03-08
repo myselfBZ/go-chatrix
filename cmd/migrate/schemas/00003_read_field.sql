@@ -1,2 +1,2 @@
 ALTER TABLE messages
-     ADD COLUMN read BOOLEAN DEFAULT false;
+     ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT false;

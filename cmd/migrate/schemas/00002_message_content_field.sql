@@ -1,2 +1,2 @@
 ALTER TABLE messages
-ADD COLUMN content TEXT;
+ADD COLUMN IF NOT EXISTS content TEXT;

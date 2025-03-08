@@ -90,6 +90,10 @@ func (s *Server) registerRoutes() http.Handler {
 		r.HandleFunc("/", s.accept)
 	})
 
+    r.Get("/health", func (w http.ResponseWriter, r *http.Request)  {
+        w.Write([]byte("healthy af"))
+    })
+
 	return r
 
 }
