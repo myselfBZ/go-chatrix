@@ -34,6 +34,6 @@ Don't. But if you must, at least keep the chaos consistent.
 This project is for **fun and experimentation only**. If you're here looking for inspiration, **run away while you still can.** 🏃💨
 
 ## CSS
-i asked different models to generate css for this so you can see LLMs name in CSS files
+i asked different models to generate css for this so you can see LLMs' names in CSS files
 
-**I am not a Front Developer**
+**I am not a FrontEnd Developer**
