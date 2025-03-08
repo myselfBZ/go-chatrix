@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatrix Registration</title>
+    <style>
+        :root {
+            --chatrix-blue: #00ADD8;
+            --chatrix-light-blue: #5DC9E2;
+            --chatrix-dark-blue: #007D9C;
+            --chatrix-grey: #E0EBF5;
+            --chatrix-dark-grey: #6E7B8B;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--chatrix-grey);
+        }
+        
+        .register-container {
+            width: 380px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .register-logo {
+            margin-bottom: 30px;
+            color: var(--chatrix-blue);
+            font-size: 36px;
+            font-weight: 700;
+        }
+        
+        .register-title {
+            color: var(--chatrix-dark-blue);
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .register-form input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        .register-form input:focus {
+            outline: none;
+            border-color: var(--chatrix-blue);
+        }
+        
+        .register-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--chatrix-blue);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .register-btn:hover {
+            background-color: var(--chatrix-dark-blue);
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .register-footer {
+            margin-top: 25px;
+            color: var(--chatrix-dark-grey);
+            font-size: 14px;
+        }
+
+        .login-link {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: var(--chatrix-blue);
+            text-decoration: none;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-logo">
+            <span>CHATRIX</span>
+        </div>
+        <h1 class="register-title">Create new account</h1>
+        <div id="error-message" class="error-message"></div>
+        <form id="register-form" class="register-form">
+            <input type="text" id="name" name="name" placeholder="Full Name" required>
+            <input type="text" id="username" name="username" placeholder="Username" required>
+            <input type="password" id="password" name="password" placeholder="Password" required>
+            <button type="submit" class="register-btn">Register</button>
+        </form>
+        <div class="login-link">
+            Already have an account? <a href="login.html">Sign in</a>
+        </div>
+        <div class="register-footer">
+            Secured with Chatrix authentication
+        </div>
+    </div>
+
+    <script type="module">
+        import { SERVERADDR } from './constants.js'
+        document.getElementById('register-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+            
+            // Reset error message
+            errorMessage.style.display = 'none';
+            errorMessage.textContent = '';
+            
+            fetch(`${SERVERADDR}/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, username, password })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Registration failed');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Successful registration
+                console.log('Registration successful:', data);
+                localStorage.setItem('token', data.token);
+                window.location.href = '/index.html';
+            })
+            .catch(error => {
+                // Display error message
+                errorMessage.textContent = 'Registration failed. Username may already be taken.';
+                errorMessage.style.display = 'block';
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
