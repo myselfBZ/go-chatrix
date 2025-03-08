@@ -101,5 +101,17 @@ ws.onmessage = (event) => {
 };
 ```
 
+## Docker runners 
+
+```
+SERVER_PORT=:6969
+DB_NAME=chatrix
+DB_HOST=localhost
+DB_PORT=32768
+DB_USER=postgres
+DB_PASSWORD=new_password
+```
+don't forget to set env vars!!!
+
 ## Contributing
 Feel free to fork and improve Chatrix! Open a pull request if you have something awesome to add.

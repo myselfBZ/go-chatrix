@@ -8,13 +8,21 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/myselfBZ/chatrix/internal/db"
 )
+func ensureEnvExists(key string) string{
+    value := os.Getenv(key)
+    if value != ""{
+        return value
+    }
+    log.Fatalf("%s wasn't set!", key)
+    return ""
+}
 
 var (
-	host     = os.Getenv("DB_HOST")
-	port     = os.Getenv("DB_PORT")
-	user     = os.Getenv("DB_USER")
-	password = os.Getenv("DB_PASSWORD")
-	db_name  = os.Getenv("DB_NAME")
+	host     = ensureEnvExists("DB_HOST")
+	port     = ensureEnvExists("DB_PORT")
+	user     = ensureEnvExists("DB_USER")
+	password = ensureEnvExists("DB_PASSWORD")
+	db_name  = ensureEnvExists("DB_NAME")
 )
 
 // "postgres://postgres:new_password@localhost:32768/wonderlust?sslmode=disable", 30, 30, "15m"

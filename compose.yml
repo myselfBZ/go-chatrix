@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    ports:
+      - "6969:6969"
+
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: .
+  db:
+    image: "postgres"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: new_password
+      POSTGRES_DB: chatrix 
+    ports:
+      - "8081:5432" 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+
+
+

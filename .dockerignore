@@ -1,0 +1,6 @@
+web/
+.git
+.gitignore
+
+Dockerfile
+.dockerignore

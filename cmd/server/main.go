@@ -2,22 +2,33 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	_ "github.com/joho/godotenv/autoload"
 )
 
-var (
-	server_port = os.Getenv("SERVER_PORT")
-	host        = os.Getenv("DB_HOST")
-	port        = os.Getenv("DB_PORT")
-	user        = os.Getenv("DB_USER")
-	password    = os.Getenv("DB_PASSWORD")
-	db_name     = os.Getenv("DB_NAME")
-)
+func ensureEnvExists(key string) string{
+    value := os.Getenv(key)
+    if value != ""{
+        return value
+    }
+    log.Fatalf("%s wasn't set!", key)
+    return ""
+}
+
 
 func main() {
+    var (
+        server_port = ensureEnvExists("SERVER_PORT")
+        host        = ensureEnvExists("DB_HOST")
+        port        = ensureEnvExists("DB_PORT")
+        user        = ensureEnvExists("DB_USER")
+        password    = ensureEnvExists("DB_PASSWORD")
+        db_name     = ensureEnvExists("DB_NAME")
+    )
+
 	config := Config{}
 	config.Addr = server_port
 	config.Db = dbConfig{
@@ -30,5 +41,6 @@ func main() {
 	}
 
 	s := NewServer(config)
+    log.Println("Server started successfully")
 	s.Run()
 }
