@@ -9,16 +9,27 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-redis/redis/v8"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/myselfBZ/chatrix/internal/auth"
 	"github.com/myselfBZ/chatrix/internal/db"
+	"github.com/myselfBZ/chatrix/internal/events"
+	"github.com/myselfBZ/chatrix/internal/kv"
+	pubsub "github.com/myselfBZ/chatrix/internal/pub-sub"
 	"github.com/myselfBZ/chatrix/internal/store"
 )
 
 type Config struct {
+    FullAddr string
 	Addr string
+    redis  redisConfig 
 	Db   dbConfig
 	auth authConfig
+}
+
+type redisConfig struct{
+    addr string
+    listenChannel string
 }
 
 type authConfig struct {
@@ -35,13 +46,15 @@ type dbConfig struct {
 }
 
 type Server struct {
+    kv *kv.KV
 	store *store.Store
 
 	Config Config
 	auth   auth.Authenticator
 
+    pubSub *pubsub.EventPubSub
 	wsConns   sync.Map
-	eventChan chan Event
+	eventChan chan *events.Event
 }
 
 func failOnError(msg string, err error) {
@@ -53,7 +66,15 @@ func failOnError(msg string, err error) {
 func NewServer(config Config) *Server {
 	db, err := db.New(config.Db.Addr, 30, 30, "15m")
 	failOnError("db", err)
+    redisClient := redis.NewClient(&redis.Options{
+        Addr: config.redis.addr,
+    })
+
+    pubSub := pubsub.New(redisClient, config.redis.listenChannel)
+    kv := kv.New(redisClient)
+
 	return &Server{
+        kv: kv,
 		store:   store.New(db),
 		Config:  config,
 		wsConns: sync.Map{},
@@ -62,8 +83,9 @@ func NewServer(config Config) *Server {
 			Iss:    config.auth.Iss,
 			Aud:    config.auth.Iss,
 		},
+        pubSub: pubSub,
 		// arbitary number of chans
-		eventChan: make(chan Event, 100),
+		eventChan: make(chan *events.Event, 100),
 	}
 }
 

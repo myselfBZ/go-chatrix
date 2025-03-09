@@ -6,6 +6,7 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/myselfBZ/chatrix/internal/events"
 )
 
 type ErrEnvelope struct{
@@ -16,7 +17,7 @@ var InternalServerError = &ErrEnvelope{Error: errors.New("server ecountered a pr
 
 
 func wsWriteJSONError(ctx context.Context, conn *websocket.Conn, err error){
-    wsjson.Write(ctx, conn, &ServerMessage{Type: ERR, Body: err})
+    wsjson.Write(ctx, conn, &events.ServerMessage{Type: events.ERR, Body: err})
 }
 
 func wsInvalidJSONPayload(ctx context.Context, conn *websocket.Conn) {
