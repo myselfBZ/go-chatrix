@@ -5,16 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/go-redis/redis/v8"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/myselfBZ/chatrix/internal/events"
 	"github.com/myselfBZ/chatrix/internal/store"
 )
@@ -24,87 +21,64 @@ type Client struct {
 	Conn *websocket.Conn
 }
 
-func (s *Server) handleHandShake(ctx context.Context, conn *websocket.Conn) {
 
-	type envelope struct {
-		Token string `json:"token"`
-	}
+func (s *Server) sendInitialUserData(ctx context.Context, conn *websocket.Conn, user *store.User) error {
+    ctxTimeout, cancel := context.WithTimeout(ctx, time.Second * 5)
+    defer cancel()
 
-	var tok envelope
-	if err := wsjson.Read(ctx, conn, &tok); err != nil {
-        wsInvalidJSONPayload(ctx, conn)
-        conn.Close(websocket.CloseStatus(err), "invalid json payload")
-		return
-	}
-
-	jwtToken, err := s.auth.ValidateToken(tok.Token)
-
-	if err != nil {
-		wsjson.Write(ctx, conn, events.ServerMessage{Type: events.ERR, Body: ErrEnvelope{Error: errors.New("invalid token")}})
-		conn.Close(websocket.StatusAbnormalClosure, "")
-		return
-	}
-
-	claims, _ := jwtToken.Claims.(jwt.MapClaims)
-
-	userID, err := strconv.Atoi(fmt.Sprintf("%.f", claims["sub"]))
-
-	if err != nil {
-		conn.Close(websocket.StatusPolicyViolation, "invalid user id")
-		return
-	}
-
-	user, err := s.store.Users.GetByID(userID)
-
-	if err != nil {
-        if errors.Is(err, sql.ErrNoRows) {
-            wsjson.Write(ctx, conn, events.ServerMessage{Type: events.ERR, Body: ErrEnvelope{Error: errors.New("user doesn't exist")}})
-            conn.Close(websocket.StatusPolicyViolation, "")
-            return
-        } 
-
-        log.Println("DEBUG", err.Error())
-		conn.Close(websocket.StatusInternalError, "")
-		return
-	}
-
-	if err := wsjson.Write(ctx, conn, events.ServerMessage{Type: events.PROFILE_INFO, Body: user}); err != nil {
+	if err := wsjson.Write(ctxTimeout, conn, events.ServerMessage{Type: events.PROFILE_INFO, Body: user}); err != nil {
         if websocket.CloseStatus(err) == -1{
             conn.Close(websocket.StatusInternalError, "couldn't write json")
-            return
+            return err
         }
         // client diconnected
-        return
+        return err
 	}
-
-	log.Printf("%s has just gone online", user.Username)
 
 	chatPreviews, err := s.store.Chats.ChatPreviews(user.ID)
 
     if err == nil{
-        if err := wsjson.Write(ctx, conn, events.ServerMessage{Type: events.CHATPREVIEWS, Body: chatPreviews}); err != nil {
+        if err := wsjson.Write(ctxTimeout, conn, events.ServerMessage{Type: events.CHATPREVIEWS, Body: chatPreviews}); err != nil {
             if websocket.CloseStatus(err) != -1{
                 conn.Close(websocket.StatusInternalError, "client disconnected")
-                return
+                return err
             }
-            // client diconnected
-            return
+            return err
         }
     }
 
-	if err != nil {
+    if err != nil {
         switch err{
-            case sql.ErrNoRows:
-                wsjson.Write(ctx, conn, events.ServerMessage{Type: events.CHATPREVIEWS, Body: nil})
-            default:
-                wsjson.Write(ctx, conn, events.ServerMessage{Type: events.ERR, Body: InternalServerError })
+        case sql.ErrNoRows:
+            wsjson.Write(ctx, conn, events.ServerMessage{Type: events.CHATPREVIEWS, Body: nil})
+        default:
+            wsjson.Write(ctx, conn, events.ServerMessage{Type: events.ERR, Body: InternalServerError })
+            log.Println("SERVER ERR: ", err)
         }
-	}
+    }
 
+    return nil
+}
+
+func (s *Server) handleHandShake(ctx context.Context, conn *websocket.Conn) {
+
+    user, _, err := s.webSocketAuth(ctx, conn)
+
+    if err != nil{
+        return
+    }
+
+
+	log.Printf("%s has just gone online", user.Username)
+
+    err = s.sendInitialUserData(ctx, conn, user)
+
+    if err != nil{
+        return 
+    }
 
 	s.wsConns.Store(user.Username, &Client{Conn: conn})
 
-    // store it in redis
     s.registerUserKV(user.Username)
     go s.readLoop(conn, user)
 }
