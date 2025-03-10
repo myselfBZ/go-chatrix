@@ -17,15 +17,21 @@ var InternalServerError = &ErrEnvelope{Error: errors.New("server ecountered a pr
 
 
 func wsWriteJSONError(ctx context.Context, conn *websocket.Conn, err error){
-    wsjson.Write(ctx, conn, &events.ServerMessage{Type: events.ERR, Body: err})
+    if conn != nil{
+        wsjson.Write(ctx, conn, &events.ServerMessage{Type: events.ERR, Body: err})
+    }
 }
 
 func wsInvalidJSONPayload(ctx context.Context, conn *websocket.Conn) {
-    wsWriteJSONError(ctx, conn, errors.New("invalid json payload"))
+    if conn != nil{
+        wsWriteJSONError(ctx, conn, errors.New("invalid json payload"))
+    }
 }
 
 func WsServerError(ctx context.Context, conn *websocket.Conn) {
-    wsWriteJSONError(ctx, conn, errors.New("server encountered a problem"))
+    if conn != nil{
+        wsWriteJSONError(ctx, conn, errors.New("server encountered a problem"))
+    }
 }
 
 func IsCloseErr(ctx context.Context, err error) bool{

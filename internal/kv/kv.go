@@ -23,6 +23,11 @@ func (k *KV) Set(key, value string) error {
 } 
 
 // get the client with the server id
-func (k *KV) Get(key string)  string {
-    return k.client.Get(context.TODO(), key).Val()
+func (k *KV) Get(key string) (string, error) {
+    result, err := k.client.Get(context.TODO(), key).Result()
+    return result, err
+}
+
+func (k *KV) Del(key string) {
+    k.client.Del(context.TODO(), key)
 }

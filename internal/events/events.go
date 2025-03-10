@@ -26,8 +26,14 @@ type ServerMessage struct {
 
 type Event struct {
 	Type   EventType `json:"type"`
+
+    // this feild lets the server know if this event came from connections 
+    // in the current server
+    FromPeer  bool      `json:"-"`
+    // users username and id
 	From   string    `json:"-"`
 	FromID int       `json:"-"`
+    // the payload, unmarshaled saperately
 	Body   string    `json:"body"`
 }
 
@@ -46,6 +52,8 @@ type OutGoingMessage struct {
 	From      string `json:"from"`
 	Content   string `json:"content"`
 	Timestamp int64  `json:"timestamp"`
+    // set only for peer to peer communication
+    To        string `json:"to"`
 }
 
 type Delivered struct {

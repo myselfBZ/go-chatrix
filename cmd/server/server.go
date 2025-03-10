@@ -21,6 +21,7 @@ import (
 
 type Config struct {
     FullAddr string
+    IsDistributed bool
 	Addr string
     redis  redisConfig 
 	Db   dbConfig
@@ -64,29 +65,47 @@ func failOnError(msg string, err error) {
 }
 
 func NewServer(config Config) *Server {
+    server := &Server{}
+    server.Config = config
+
 	db, err := db.New(config.Db.Addr, 30, 30, "15m")
 	failOnError("db", err)
-    redisClient := redis.NewClient(&redis.Options{
-        Addr: config.redis.addr,
-    })
 
-    pubSub := pubsub.New(redisClient, config.redis.listenChannel)
-    kv := kv.New(redisClient)
+    server.store = store.New(db)
+    server.wsConns = sync.Map{}
+    server.auth = &auth.JWTAuthenticator{
+        Secret: config.auth.Secret,
+        Iss: config.auth.Iss,
+        Aud: config.auth.Iss,
+    }
 
-	return &Server{
-        kv: kv,
-		store:   store.New(db),
-		Config:  config,
-		wsConns: sync.Map{},
-		auth: &auth.JWTAuthenticator{
-			Secret: config.auth.Secret,
-			Iss:    config.auth.Iss,
-			Aud:    config.auth.Iss,
-		},
-        pubSub: pubSub,
-		// arbitary number of chans
-		eventChan: make(chan *events.Event, 100),
-	}
+    server.eventChan = make(chan *events.Event, 100)
+
+    if config.IsDistributed{
+        redisClient := redis.NewClient(&redis.Options{
+            Addr: config.redis.addr,
+        })
+
+        server.pubSub = pubsub.New(redisClient, config.redis.listenChannel)
+        server.kv = kv.New(redisClient)
+    }
+
+    return server
+
+	// return &Server{
+    //  kv: kv,
+	// 	store:   store.New(db),
+	// 	Config:  config,
+	// 	wsConns: sync.Map{},
+	// 	auth: &auth.JWTAuthenticator{
+	// 		Secret: config.auth.Secret,
+	// 		Iss:    config.auth.Iss,
+	// 		Aud:    config.auth.Iss,
+	// 	},
+	//        pubSub: pubSub,
+	// 	// arbitary number of chans
+	// 	eventChan: make(chan *events.Event, 100),
+	// }
 }
 
 func (s *Server) registerRoutes() http.Handler {
@@ -122,5 +141,8 @@ func (s *Server) registerRoutes() http.Handler {
 
 func (s *Server) Run() error {
 	go s.eventLoop()
+    if s.Config.IsDistributed {
+        go s.recieveFromPeer()
+    }
 	return http.ListenAndServe(s.Config.Addr, s.registerRoutes())
 }

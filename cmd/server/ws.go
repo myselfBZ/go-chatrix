@@ -13,9 +13,10 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/myselfBZ/chatrix/internal/events"
 	"github.com/myselfBZ/chatrix/internal/store"
-    "github.com/myselfBZ/chatrix/internal/events"
 )
 
 
@@ -102,7 +103,10 @@ func (s *Server) handleHandShake(ctx context.Context, conn *websocket.Conn) {
 
 
 	s.wsConns.Store(user.Username, &Client{Conn: conn})
-	go s.readLoop(conn, user)
+
+    // store it in redis
+    s.registerUserKV(user.Username)
+    go s.readLoop(conn, user)
 }
 
 func (s *Server) readLoop(c *websocket.Conn, user *store.User) {
@@ -112,6 +116,7 @@ func (s *Server) readLoop(c *websocket.Conn, user *store.User) {
 		if err := wsjson.Read(ctx, c, &event); err != nil {
             if IsCloseErr(ctx, err){
                 s.wsConns.Delete(user.Username)
+                s.kv.Del(user.Username)
                 return
             }
             wsInvalidJSONPayload(ctx, c)
@@ -143,20 +148,7 @@ func (s *Server) eventLoop() {
                 defer cancel()
 				switch event.Type {
 				case events.TEXT:
-					var t events.IncomingMessagePayload
-					if err := json.Unmarshal([]byte(event.Body), &t); err != nil {
-						client := s.getClient(event.From)
-						if client != nil {
-                            wsInvalidJSONPayload(errContext, client.Conn)
-                            cancel()
-							continue
-						}
-					}
-
-					t.From = event.From
-					t.FromUserID = event.FromID
-
-					s.handleText(&t)
+					s.handleText(event)
 				case events.SearchUserRequest:
 					var r events.SearchUserPayload
 					if err := json.Unmarshal([]byte(event.Body), &r); err != nil {
@@ -202,6 +194,7 @@ func (s *Server) eventLoop() {
 
 func (s *Server) getClient(username string) *Client {
 	v, ok := s.wsConns.Load(username)
+    // search the redis too
 	if !ok {
 		return nil
 	}
@@ -239,10 +232,10 @@ func (s *Server) storeMessage(msg *events.IncomingMessagePayload, chatID int) (i
 func (s *Server) sendMessage(ctx context.Context, msgID int, t *events.IncomingMessagePayload) {
 	out := &events.OutGoingMessage{
         MsgID: msgID,
-		From:      t.From,
-		Content:   t.Content,
-		Timestamp: time.Now().Unix(),
-	}
+        From:      t.From,
+        Content:   t.Content,
+        Timestamp: time.Now().Unix(),
+    }
 
 	s.sendServerMessage(ctx, t.To, &events.ServerMessage{Type: events.TEXT, Body: out})
 	s.sendServerMessage(
@@ -258,25 +251,56 @@ func (s *Server) sendMessage(ctx context.Context, msgID int, t *events.IncomingM
 	)
 }
 
-func (s *Server) handleText(t *events.IncomingMessagePayload) {
+func (s *Server) handlePeerEvent(event *events.Event) {
+    var outMsg events.OutGoingMessage
+
+    if err := json.Unmarshal([]byte(event.Body), &outMsg); err != nil{
+        if errors.Is(err, &json.SyntaxError{}){
+            s.sendServerMessage(context.TODO(), event.From, &events.ServerMessage{Type: events.ERR, Body: ErrEnvelope{Error: err}})
+            return
+        }
+        log.Println("DEBUG: ", err)
+    }
+
+    s.sendServerMessage(context.TODO(), outMsg.To, &events.ServerMessage{Type: events.TEXT, Body: outMsg})
+}
+
+func (s *Server) handleText(event *events.Event) {
+
+    if event.FromPeer{
+        s.handlePeerEvent(event)
+    }
+
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()
 
-	chat, err := s.ensureChatExists(t.FromUserID, t.ToUserID)
-	if err != nil {
+    var t events.IncomingMessagePayload
+
+    if err := json.Unmarshal([]byte(event.Body), &t); err != nil {
+        client := s.getClient(event.From)
+        if client != nil {
+            wsInvalidJSONPayload(context.TODO(), client.Conn)
+            cancel()
+        }
+    }
+
+    t.From = event.From
+    t.FromUserID = event.FromID
+
+    chat, err := s.ensureChatExists(t.FromUserID, t.ToUserID)
+
+    if err != nil {
         s.sendServerMessage(ctx, t.From, &events.ServerMessage{Type: events.ERR, Body: InternalServerError})
-		return
-	}
+        return
+    }
+    id, err := s.storeMessage(&t, chat.ID)
 
-	id, err := s.storeMessage(t, chat.ID)
-
-	if err != nil {
-		log.Println("DEBUG: couldn't store the message: ", err)
+    if err != nil {
+        log.Println("DEBUG: couldn't store the message: ", err)
         s.sendServerMessage(ctx, t.From, &events.ServerMessage{Type: events.ERR, Body: InternalServerError})
-		return
-	}
-
-	s.sendMessage(ctx, id, t)
+        return
+    }
+    s.sendMessage(ctx, id, &t)
 }
 
 func (s *Server) handleUserSearch(query *events.SearchUserPayload) {
@@ -291,10 +315,7 @@ func (s *Server) handleUserSearch(query *events.SearchUserPayload) {
 		log.Println("DEBUG: ", err)
 		return
 	}
-	client := s.getClient(query.From)
-	if client != nil {
-        wsjson.Write(ctx, client.Conn, events.ServerMessage{Type: events.SearchUserResponse, Body: users})
-	}
+    s.sendServerMessage(ctx, query.From, &events.ServerMessage{Type: events.SearchUserResponse, Body: users})
 }
 
 func (s *Server) handleLoadChatHistory(p *events.LoadChatHistoryReqPayload, from string) {
@@ -323,7 +344,26 @@ func (s *Server) sendServerMessage(ctx context.Context, to string, msg *events.S
 
 	if client != nil {
 		wsjson.Write(ctx, client.Conn, msg)
+        return
 	}
+
+    // look up the redis, if the client doesn't exist in 
+    // the current server
+    peerAddr, err := s.kv.Get(to)
+    if err != nil{
+        // connection doesn't exist
+        if err == redis.Nil{
+            return
+        } 
+        log.Println("DEBUG: ", err)
+        return
+    }
+
+    body, err := json.Marshal(msg.Body)
+    if err != nil{
+        log.Println("ERROR: ", err)
+    }
+    s.pubSub.Pub.Publish(ctx, peerAddr, &events.Event{Type: msg.Type, Body:string(body) })
 }
 
 func (s *Server) handleMarkRead(m *events.MarkReadRequestPayload) {

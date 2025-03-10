@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/myselfBZ/chatrix/internal/events"
@@ -28,6 +29,7 @@ type RedisPublisher struct{
 
 
 func (p *RedisPublisher) Publish(ctx context.Context, channelName string, e *events.Event) error {
-    return p.client.Publish(ctx, channelName, e).Err()
+    jsonvalue, _ := json.Marshal(e)
+    return p.client.Publish(ctx, channelName, string(jsonvalue)).Err()
 }
 
