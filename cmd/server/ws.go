@@ -114,7 +114,7 @@ func (s *Server) readLoop(c *websocket.Conn, user *store.User) {
 	for {
 		var event events.Event
 		if err := wsjson.Read(ctx, c, &event); err != nil {
-            if IsCloseErr(ctx, err){
+            if websocket.CloseStatus(err) != -1{
                 s.wsConns.Delete(user.Username)
                 s.kv.Del(user.Username)
                 return
@@ -318,8 +318,7 @@ func (s *Server) handleText(event *events.Event) {
 }
 
 func (s *Server) handleUserSearch(query *events.SearchUserPayload) {
-    ctx, cancel := context.WithCancel(context.Background())
-    defer cancel()
+    ctx := context.TODO()
 	users, err := s.store.Users.SearchByUsername(query.Username)
 	if err != nil {
         if errors.Is(err, sql.ErrNoRows){
@@ -341,7 +340,7 @@ func (s *Server) handleLoadChatHistory(p *events.LoadChatHistoryReqPayload, from
             s.sendServerMessage(ctx, from, &events.ServerMessage{Type: events.LoadChatHistoryResponse, Body: nil})
 			return
 		}
-
+        log.Println("SERVER ERROR:", err)
         s.sendServerMessage(ctx, from, &events.ServerMessage{Type: events.ERR, Body: InternalServerError})
 		return
 	}
