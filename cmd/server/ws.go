@@ -172,7 +172,19 @@ func (s *Server) eventLoop() {
                         continue
 					}
 					s.handleLoadChatHistory(&p, event.From)
+
                 case events.MARK_READ:
+                    if event.FromPeer{
+                        var p MarkReadPayloadFromPeer
+                        log.Println("really is this what's gonna happen", event.Body)
+                        if err := json.Unmarshal([]byte(event.Body), &p); err != nil{
+                            log.Println("DEBUG: ", err)
+                            continue
+                        }
+                        s.sendServerMessage(context.TODO(), p.To, &events.ServerMessage{Type: events.MARK_READ, Body: p.MessageIds})
+                        continue
+                    }
+
 					var p events.MarkReadRequestPayload 
 					if err := json.Unmarshal([]byte(event.Body), &p); err != nil {
 						client := s.getClient(event.From)
@@ -184,7 +196,6 @@ func (s *Server) eventLoop() {
 					}
                     p.From = event.From
                     s.handleMarkRead(&p)
-
 				}
                 cancel()
 			}
@@ -232,6 +243,7 @@ func (s *Server) storeMessage(msg *events.IncomingMessagePayload, chatID int) (i
 func (s *Server) sendMessage(ctx context.Context, msgID int, t *events.IncomingMessagePayload) {
 	out := &events.OutGoingMessage{
         MsgID: msgID,
+        To: t.To,
         From:      t.From,
         Content:   t.Content,
         Timestamp: time.Now().Unix(),
@@ -262,11 +274,13 @@ func (s *Server) handlePeerEvent(event *events.Event) {
         log.Println("DEBUG: ", err)
     }
 
+    log.Println("Successfully decoded the message coming from the other peer")
+    log.Println("it is actually going to", outMsg.To)
+
     s.sendServerMessage(context.TODO(), outMsg.To, &events.ServerMessage{Type: events.TEXT, Body: outMsg})
 }
 
 func (s *Server) handleText(event *events.Event) {
-
     if event.FromPeer{
         s.handlePeerEvent(event)
     }
@@ -375,5 +389,5 @@ func (s *Server) handleMarkRead(m *events.MarkReadRequestPayload) {
         s.sendServerMessage(ctx, m.From, &events.ServerMessage{Type: events.ERR, Body: InternalServerError})
 		return
 	}
-    s.sendServerMessage(ctx, m.To, &events.ServerMessage{Type: events.MARK_READ, Body: m.MessageIds})
+    s.sendServerMessage(ctx, m.To, &events.ServerMessage{Type: events.MARK_READ, Body: map[string]any{"body":m.MessageIds, "to":m.To}})
 }

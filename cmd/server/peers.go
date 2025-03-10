@@ -1,6 +1,12 @@
 package main
 
 
+type MarkReadPayloadFromPeer struct{
+    MessageIds []int `json:"body"`
+    To         string   `json:"to"`
+}
+
+
 func (s *Server) recieveFromPeer() {
 	go s.pubSub.Sub.Run()
 	for msg := range s.pubSub.Sub.Channel() {
@@ -12,4 +18,6 @@ func (s *Server) recieveFromPeer() {
 func (s *Server) registerUserKV(username string) error {
 	return s.kv.Set(username, s.Config.FullAddr)
 }
+
+
 

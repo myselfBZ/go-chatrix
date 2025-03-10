@@ -26,7 +26,6 @@ type ServerMessage struct {
 
 type Event struct {
 	Type   EventType `json:"type"`
-
     // this feild lets the server know if this event came from connections 
     // in the current server
     FromPeer  bool      `json:"-"`
@@ -34,6 +33,7 @@ type Event struct {
 	From   string    `json:"-"`
 	FromID int       `json:"-"`
     // the payload, unmarshaled saperately
+
 	Body   string    `json:"body"`
 }
 
@@ -71,7 +71,9 @@ type SearchUserPayload struct {
 type MarkReadRequestPayload struct {
 	MessageIds []int `json:"message_ids"`
 
+    // the one who needs to be informed about the read event
 	To   string     `json:"to"`
+    // the one who read the messages
 	From string
 }
 
@@ -83,4 +85,3 @@ type LoadChatHistoryReqPayload struct {
 type ChatHistory struct {
 	Messages []*store.Message `json:"messages"`
 }
-
