@@ -61,7 +61,7 @@ Clients should connect via WebSockets, (and send token after the handshake):
 ```js
 const ws = new WebSocket("ws://localhost:8080/ws");
 ws.onopen = () => {
-    ws.send(JSON.stringify({ token: "your_jwt_token" }));
+    ws.send({ token: "your_jwt_token" });
 };
 ```
 
@@ -82,14 +82,14 @@ ws.onopen = () => {
 ```js
 ws.send(JSON.stringify({
     type: 0, // TEXT
-    body: JSON.stringify({
+    body: {
         to: {
             username:"username",
             id:0,
         },
         content: "Hello!",
         mark: `some unique mark for clients to recognize the DELIVERD event for this message`
-    })
+    }
 }));
 ```
 
