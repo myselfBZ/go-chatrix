@@ -68,14 +68,13 @@ function handleSend(){
     const mark = Date.now()
     const event = {
         type:EVENT.Text,
-        body:JSON.stringify(
+        body:
             {
                 to:state.to.username,
                 to_id:state.to.id,
                 content:msg,
                 mark:mark
             }
-        )
     }
     ws.send(JSON.stringify(event))
 
@@ -220,11 +219,11 @@ function init(){
                     let readNewMessages = [];
 
                     for(const msg of data.body){
-                        if(!msg.read){
+                        if(!msg.read && msg.user_id !== state.user.id){
                             readNewMessages.push(msg.id)
                         }
                         if(msg.user_id === state.user.id){
-                            console.log(msg.read)
+                            
                             
                             const viewableMsgContainer = document.createElement('div')
                             const viewableMsg = document.createElement('p')
@@ -232,7 +231,10 @@ function init(){
                             
                             viewableMsg.innerText = msg.content
                             viewableMsg.className = "users-msgs"
-                            stateOfMsg.id = msg.id      
+                            stateOfMsg.id = msg.id    
+                            if(!msg.read){
+                                stateOfMsg.innerHTML = svgDelivered
+                            }  
                             viewableMsgContainer.appendChild(viewableMsg)
                             viewableMsgContainer.appendChild(stateOfMsg)
                             msgContainer.appendChild(viewableMsgContainer)
@@ -252,7 +254,10 @@ function init(){
                         msgContainer.appendChild(incomingMsg)
                         scrollToBottom()
                     }
-                    readMessages(readNewMessages)
+                    if(readMessages.length > 0){
+                        console.log("i am sending messages...")
+                        readMessages(readNewMessages)
+                    }
                     break;
                 case EVENT.MarkRead:
                     for(const id of data.body){
@@ -271,10 +276,10 @@ init()
 function readMessages(msgsArr){
     const jsonData = JSON.stringify({
         type:EVENT.MarkRead,
-        body:JSON.stringify({
+        body:{
             to:state.to.username,
             message_ids:msgsArr
-        })
+        }
     })
     ws.send(jsonData)
 }
@@ -287,12 +292,12 @@ function scrollToBottom() {
 function handleLoadingChatHistory(userId){
     const event = {
         type:EVENT.LoadChatHistoryRequest,
-        body:JSON.stringify(
+        body:
             {
                 user1_id:state.user.id,
                 user2_id:userId
             }
-        )
+       
     }
     
     ws.send(JSON.stringify(event))
@@ -358,9 +363,9 @@ function handleSearch(){
     if(username == "") return;
     const request = JSON.stringify({
         type:EVENT.SearchByUsername,
-        body:JSON.stringify({
+        body:{
             username: username
-        })
+        }
     })
     ws.send(request)
 }
