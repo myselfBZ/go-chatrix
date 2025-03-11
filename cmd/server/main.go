@@ -35,19 +35,21 @@ func main() {
 
 	config := Config{}
     // a very special line
-    //
 	config.ListenAddr = server_port
     config.ServerAddr = serverHost
 	config.Db = dbConfig{
 		Addr: fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, password, dbhost, port, db_name),
 	}
 
-    config.redis = redisConfig{
+    config.Redis = redisConfig{
         addr: redisAddr,
         listenChannel: config.ServerAddr,
     }
 
-	config.auth = authConfig{
+
+    config.WorkerPool = 5
+
+	config.Auth = authConfig{
 		Secret: "secret",
 		Exp:    time.Hour * 24,
 		Iss:    "some random ass thing",

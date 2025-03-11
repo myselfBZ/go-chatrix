@@ -21,9 +21,12 @@ import (
 type Config struct {
     ServerAddr string
 	ListenAddr string
-    redis  redisConfig 
+    Redis  redisConfig 
 	Db   dbConfig
-	auth authConfig
+	Auth authConfig
+
+    WorkerPool int
+    ChanBuffSize int
 }
 
 type redisConfig struct{
@@ -72,16 +75,16 @@ func NewServer(config Config) *Server {
 
     server.store = store.New(db)
     server.auth = &auth.JWTAuthenticator{
-        Secret: config.auth.Secret,
-        Iss: config.auth.Iss,
-        Aud: config.auth.Iss,
+        Secret: config.Auth.Secret,
+        Iss: config.Auth.Iss,
+        Aud: config.Auth.Iss,
     }
 
-    server.eventChan = make(chan *messaging.Event, 100)
-    server.peerMsgChan = make(chan *messaging.PeerMessage, 100)
+    server.eventChan = make(chan *messaging.Event, config.ChanBuffSize)
+    server.peerMsgChan = make(chan *messaging.PeerMessage, config.ChanBuffSize)
 
     redisClient := redis.NewClient(&redis.Options{
-        Addr: config.redis.addr,
+        Addr: config.Redis.addr,
     })
 
     server.pubsub = distribution.NewPubSub(redisClient, server.redisPubSubHandler, config.ServerAddr)
@@ -123,15 +126,6 @@ func (s *Server) registerRoutes() http.Handler {
 }
 
 // for handling messages coming from redis pub/sub
-func (s *Server) redisPubSubHandler(msg *redis.Message) {
-    var m messaging.PeerMessage
-    if err := json.Unmarshal([]byte(msg.Payload), &m); err != nil{
-        log.Println("MARSHALING ERROR: ", err)
-        return
-    }
-    s.peerMsgChan <- &m
-}
-
 func (s *Server) Run() error {
     s.pubsub.Start()
     

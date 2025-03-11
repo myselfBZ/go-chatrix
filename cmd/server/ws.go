@@ -108,7 +108,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) eventLoop() {
 	// worker pool, to avoid bottleneck
-	for i := 0; i < 5; i++ {
+	for i := 0; i < s.Config.WorkerPool; i++ {
 		go func() {
 			for event := range s.eventChan {
                 errContext, cancel := context.WithTimeout(context.Background(), time.Second * 5)
