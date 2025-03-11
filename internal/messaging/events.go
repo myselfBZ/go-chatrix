@@ -30,6 +30,12 @@ type ServerMessage struct {
     ToPeer      bool `json:"-"`
 }
 
+
+type PeerMessage struct{
+    To  string `json:"to"`
+    Msg *ServerMessage `json:"msg"`
+}
+
 type Event struct {
 	Type   EventType `json:"type"`
 

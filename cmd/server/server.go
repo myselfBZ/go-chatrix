@@ -54,6 +54,7 @@ type Server struct {
     pubsub    *distribution.PubSub
 
 	eventChan chan *messaging.Event
+    peerMsgChan chan *messaging.PeerMessage
 }
 
 func failOnError(msg string, err error) {
@@ -77,6 +78,7 @@ func NewServer(config Config) *Server {
     }
 
     server.eventChan = make(chan *messaging.Event, 100)
+    server.peerMsgChan = make(chan *messaging.PeerMessage, 100)
 
     redisClient := redis.NewClient(&redis.Options{
         Addr: config.redis.addr,
@@ -122,18 +124,18 @@ func (s *Server) registerRoutes() http.Handler {
 
 // for handling messages coming from redis pub/sub
 func (s *Server) redisPubSubHandler(msg *redis.Message) {
-    var e messaging.Event
-    if err := json.Unmarshal([]byte(msg.Payload), &e); err != nil{
+    var m messaging.PeerMessage
+    if err := json.Unmarshal([]byte(msg.Payload), &m); err != nil{
         log.Println("MARSHALING ERROR: ", err)
         return
     }
-    e.FromPeer = true
-    s.eventChan <- &e
+    s.peerMsgChan <- &m
 }
 
 func (s *Server) Run() error {
     s.pubsub.Start()
-
+    
+    go s.peerMsgLoop()
 	go s.eventLoop()
 	return http.ListenAndServe(s.Config.ListenAddr, s.registerRoutes())
 }

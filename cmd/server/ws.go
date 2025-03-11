@@ -204,10 +204,6 @@ func (s *Server) sendMessage(ctx context.Context, msgID int, t *messaging.Incomi
 func (s *Server) sendServerMessage(ctx context.Context, to string, msg *messaging.ServerMessage) {
 	client := s.pool.Get(to)
 
-    if msg.Type == messaging.MARK_READ{
-        log.Println("message read body: ", msg.Body)
-    }
-
 	if client != nil {
 		wsjson.Write(ctx, client.Conn, msg)
         return
@@ -225,10 +221,5 @@ func (s *Server) sendServerMessage(ctx context.Context, to string, msg *messagin
         log.Println("DEBUG: ", err)
         return
     }
-
-    body, err := json.Marshal(msg.Body)
-    if err != nil{
-        log.Println("ERROR: ", err)
-    }
-    s.pubsub.Publish(peerAddr, &messaging.Event{Type: msg.Type, Body: body })
+    s.pubsub.Publish(peerAddr, &messaging.PeerMessage{To: to, Msg:msg})
 }

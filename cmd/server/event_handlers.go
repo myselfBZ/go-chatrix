@@ -11,10 +11,6 @@ import (
 )
 
 func (s *Server) handleText(event *messaging.Event) {
-	if event.FromPeer {
-		s.handlePeerEvent(event)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -37,6 +33,7 @@ func (s *Server) handleText(event *messaging.Event) {
 		s.sendServerMessage(ctx, t.From, &messaging.ServerMessage{Type: messaging.ERR, Body: InternalServerError})
 		return
 	}
+
 	id, err := s.storeMessage(&t, chat.ID)
 
 	if err != nil {
@@ -47,18 +44,6 @@ func (s *Server) handleText(event *messaging.Event) {
 }
 
 func (s *Server) handleMarkRead(event *messaging.Event) {
-    // if its coming from a peer server, forward it to 
-    //  right conn in the current server
-    if event.FromPeer{
-        var p messaging.MarkReadPayloadFromPeer
-        if err := json.Unmarshal(event.Body, &p); err != nil{
-            log.Println("JSON MARSHALING ERROR: ", err)
-            return
-        }
-        s.sendServerMessage(context.TODO() , p.To, &messaging.ServerMessage{Type: messaging.MARK_READ, Body: p.MessageIds})
-        return
-    }
-
     // else just handle it
     var p messaging.MarkReadRequestPayload
     if err := json.Unmarshal(event.Body, &p); err != nil {
@@ -76,7 +61,7 @@ func (s *Server) handleMarkRead(event *messaging.Event) {
 		return
 	}
     
-    s.sendServerMessage(ctx, p.To, &messaging.ServerMessage{Type: messaging.MARK_READ, Body: map[string]any{"message_ids":p.MessageIds, "to":p.To}})
+    s.sendServerMessage(ctx, p.To, &messaging.ServerMessage{Type: messaging.MARK_READ, Body: p.MessageIds})
 }
 
 

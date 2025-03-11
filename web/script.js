@@ -260,6 +260,7 @@ function init(){
                     }
                     break;
                 case EVENT.MarkRead:
+                    
                     for(const id of data.body){
                         
                         
