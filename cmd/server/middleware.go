@@ -13,7 +13,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/myselfBZ/chatrix/internal/events"
+	"github.com/myselfBZ/chatrix/internal/messaging"
 	"github.com/myselfBZ/chatrix/internal/store"
 )
 
@@ -87,7 +87,7 @@ func (s *Server) webSocketAuth(ctx context.Context, conn *websocket.Conn) (user 
 	jwtToken, err := s.auth.ValidateToken(tok.Token)
 
 	if err != nil {
-		wsjson.Write(ctx, conn, events.ServerMessage{Type: events.ERR, Body: ErrEnvelope{Error: ErrInvalidToken}})
+		wsjson.Write(ctx, conn, messaging.ServerMessage{Type: messaging.ERR, Body: ErrEnvelope{Error: ErrInvalidToken}})
         return nil, websocket.StatusPolicyViolation, ErrInvalidToken
 	}
 
@@ -103,7 +103,7 @@ func (s *Server) webSocketAuth(ctx context.Context, conn *websocket.Conn) (user 
 
 	if err != nil {
         if errors.Is(err, sql.ErrNoRows) {
-            wsjson.Write(ctx, conn, events.ServerMessage{Type: events.ERR, Body: ErrEnvelope{Error: ErrUserNotFound}})
+            wsjson.Write(ctx, conn, messaging.ServerMessage{Type: messaging.ERR, Body: ErrEnvelope{Error: ErrUserNotFound}})
             return nil, websocket.StatusPolicyViolation, ErrUserNotFound
         } 
 

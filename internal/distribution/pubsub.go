@@ -3,7 +3,6 @@ package distribution
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -11,6 +10,20 @@ import (
 
 
 type MessageHandler func(msg *redis.Message)
+
+
+
+func NewPubSub(client *redis.Client, handler MessageHandler, channel string) *PubSub {
+    pubsub := client.Subscribe(context.TODO(), channel)
+    ps := &PubSub{
+        client: client,
+        pubsub: pubsub,
+        handler: handler,
+        listenChannel:channel,
+        done: make(chan struct{}),
+    }
+    return ps
+}
 
 type PubSub struct{
     client *redis.Client
@@ -33,11 +46,6 @@ func (ps *PubSub) Publish(channel string, msg interface{}) error {
 } 
 
 func (ps *PubSub) Start() {
-    // subscribe
-    err := ps.pubsub.Subscribe(context.Background(), ps.listenChannel)
-    if err != nil{
-        log.Fatal("FATAL ERR: ", err)
-    }
 
     go func(){
         for{
@@ -50,6 +58,3 @@ func (ps *PubSub) Start() {
         }
     }()
 }
-
-
-
