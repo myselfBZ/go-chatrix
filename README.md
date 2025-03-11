@@ -43,11 +43,15 @@ go mod tidy
 
 Set up your **environment variables** in a `.env` file:
 ```
+
+SERVER_HOST=localhost:6969
+SERVER_PORT=:6969
 DB_NAME=chatrix
 DB_HOST=localhost
 DB_PORT=32768
 DB_USER=postgres
 DB_PASSWORD=new_password
+REDISADDR=localhost:6379
 ```
 
 ### Running the Server
@@ -105,12 +109,15 @@ ws.onmessage = (event) => {
 ## Docker runners 
 
 ```
+SERVER_HOST=localhost:6969
 SERVER_PORT=:6969
 DB_NAME=chatrix
 DB_HOST=localhost
 DB_PORT=32768
 DB_USER=postgres
 DB_PASSWORD=new_password
+
+REDISADDR=localhost:6379
 ```
 don't forget to set env vars!!!
 
