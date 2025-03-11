@@ -1,9 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -13,16 +13,14 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/myselfBZ/chatrix/internal/auth"
 	"github.com/myselfBZ/chatrix/internal/db"
-	"github.com/myselfBZ/chatrix/internal/events"
-	"github.com/myselfBZ/chatrix/internal/kv"
-	pubsub "github.com/myselfBZ/chatrix/internal/pub-sub"
+	"github.com/myselfBZ/chatrix/internal/distribution"
+	"github.com/myselfBZ/chatrix/internal/messaging"
 	"github.com/myselfBZ/chatrix/internal/store"
 )
 
 type Config struct {
-    FullAddr string
-    IsDistributed bool
-	Addr string
+    ServerAddr string
+	ListenAddr string
     redis  redisConfig 
 	Db   dbConfig
 	auth authConfig
@@ -47,15 +45,15 @@ type dbConfig struct {
 }
 
 type Server struct {
-    kv *kv.KV
 	store *store.Store
 
 	Config Config
 	auth   auth.Authenticator
 
-    pubSub *pubsub.EventPubSub
-	wsConns   sync.Map
-	eventChan chan *events.Event
+    pool      *messaging.Pool
+    pubsub    *distribution.PubSub
+
+	eventChan chan *messaging.Event
 }
 
 func failOnError(msg string, err error) {
@@ -72,40 +70,23 @@ func NewServer(config Config) *Server {
 	failOnError("db", err)
 
     server.store = store.New(db)
-    server.wsConns = sync.Map{}
     server.auth = &auth.JWTAuthenticator{
         Secret: config.auth.Secret,
         Iss: config.auth.Iss,
         Aud: config.auth.Iss,
     }
 
-    server.eventChan = make(chan *events.Event, 100)
+    server.eventChan = make(chan *messaging.Event, 100)
 
-    if config.IsDistributed{
-        redisClient := redis.NewClient(&redis.Options{
-            Addr: config.redis.addr,
-        })
+    redisClient := redis.NewClient(&redis.Options{
+        Addr: config.redis.addr,
+    })
 
-        server.pubSub = pubsub.New(redisClient, config.redis.listenChannel)
-        server.kv = kv.New(redisClient)
-    }
+    server.pubsub = distribution.NewPubSub(redisClient, server.redisPubSubHandler, config.ServerAddr)
+
+    server.pool = messaging.NewPool(config.ServerAddr, redisClient)
 
     return server
-
-	// return &Server{
-    //  kv: kv,
-	// 	store:   store.New(db),
-	// 	Config:  config,
-	// 	wsConns: sync.Map{},
-	// 	auth: &auth.JWTAuthenticator{
-	// 		Secret: config.auth.Secret,
-	// 		Iss:    config.auth.Iss,
-	// 		Aud:    config.auth.Iss,
-	// 	},
-	//        pubSub: pubSub,
-	// 	// arbitary number of chans
-	// 	eventChan: make(chan *events.Event, 100),
-	// }
 }
 
 func (s *Server) registerRoutes() http.Handler {
@@ -139,10 +120,20 @@ func (s *Server) registerRoutes() http.Handler {
 
 }
 
-func (s *Server) Run() error {
-	go s.eventLoop()
-    if s.Config.IsDistributed {
-        go s.recieveFromPeer()
+// for handling messages coming from redis pub/sub
+func (s *Server) redisPubSubHandler(msg *redis.Message) {
+    var e messaging.Event
+    if err := json.Unmarshal([]byte(msg.Payload), &e); err != nil{
+        log.Println("MARSHALING ERROR: ", err)
+        return
     }
-	return http.ListenAndServe(s.Config.Addr, s.registerRoutes())
+    e.FromPeer = true
+    s.eventChan <- &e
+}
+
+func (s *Server) Run() error {
+    s.pubsub.Start()
+
+	go s.eventLoop()
+	return http.ListenAndServe(s.Config.ListenAddr, s.registerRoutes())
 }

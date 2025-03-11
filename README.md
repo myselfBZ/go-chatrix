@@ -1,6 +1,6 @@
 # Chatrix Backend
 
-Chatrix is a **real-time, event-driven messaging backend** built using **Go** and **WebSockets**. It enables instant messaging with automatic conversation creation, user search, and message delivery tracking.
+Chatrix is a **real-time, distributed, event-driven messaging backend** built using **Go** and **WebSockets**. It enables instant messaging with automatic conversation creation, user search, and message delivery tracking.
 
 ## Features
 

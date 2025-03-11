@@ -1,9 +1,21 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
 )
+
+
+var(
+    ErrInvalidJsonPayload = errors.New("invalid json payload")
+    ErrInvalidToken = errors.New("invalid token")
+    ErrInvalidUserId = errors.New("invalid user id")
+    ErrUserNotFound = errors.New("user not found")
+    ErrInteralServer = errors.New("server encountered a problem")
+)
+
+
 
 func (s *Server) internalServerError(w http.ResponseWriter, r *http.Request, err error) {
 	log.Println("internal error", "method", r.Method, "path", r.URL.Path, "error", err.Error())

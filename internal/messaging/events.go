@@ -1,6 +1,10 @@
-package events 
+package messaging
 
-import "github.com/myselfBZ/chatrix/internal/store"
+import (
+	"encoding/json"
+
+	"github.com/myselfBZ/chatrix/internal/store"
+)
 
 type EventType int
 
@@ -22,19 +26,22 @@ const (
 type ServerMessage struct {
 	Type EventType `json:"type"`
 	Body any       `json:"body"`
+
+    ToPeer      bool `json:"-"`
 }
 
 type Event struct {
 	Type   EventType `json:"type"`
+
     // this feild lets the server know if this event came from connections 
     // in the current server
     FromPeer  bool      `json:"-"`
-    // users username and id
+    // user's username and id
 	From   string    `json:"-"`
 	FromID int       `json:"-"`
-    // the payload, unmarshaled saperately
 
-	Body   string    `json:"body"`
+    // the payload is unmarshaled saperately
+	Body   json.RawMessage    `json:"body"`
 }
 
 type IncomingMessagePayload struct {
@@ -67,6 +74,7 @@ type SearchUserPayload struct {
 	From     string `json:"-"`
 }
 
+
 // Reading many messages in one go
 type MarkReadRequestPayload struct {
 	MessageIds []int `json:"message_ids"`
@@ -85,3 +93,9 @@ type LoadChatHistoryReqPayload struct {
 type ChatHistory struct {
 	Messages []*store.Message `json:"messages"`
 }
+
+type MarkReadPayloadFromPeer struct{
+    MessageIds []int   `json:"message_ids"` 
+    To         string   `json:"to"`
+}
+

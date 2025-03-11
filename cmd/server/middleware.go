@@ -2,12 +2,19 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/myselfBZ/chatrix/internal/messaging"
+	"github.com/myselfBZ/chatrix/internal/store"
 )
 
 const (
@@ -55,3 +62,58 @@ func (app *Server) AuthTokenMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+
+
+
+func (s *Server) webSocketAuth(ctx context.Context, conn *websocket.Conn) (user *store.User, status websocket.StatusCode, err error) {
+
+    defer func(){
+        if err != nil{
+            conn.Close(status, err.Error())
+        }
+    }()
+
+	type envelope struct {
+		Token string `json:"token"`
+	}
+
+	var tok envelope
+	if err := wsjson.Read(ctx, conn, &tok); err != nil {
+        wsInvalidJSONPayload(ctx, conn)
+		return nil, websocket.StatusInvalidFramePayloadData, ErrInvalidJsonPayload
+	}
+
+	jwtToken, err := s.auth.ValidateToken(tok.Token)
+
+	if err != nil {
+		wsjson.Write(ctx, conn, messaging.ServerMessage{Type: messaging.ERR, Body: ErrEnvelope{Error: ErrInvalidToken}})
+        return nil, websocket.StatusPolicyViolation, ErrInvalidToken
+	}
+
+	claims, _ := jwtToken.Claims.(jwt.MapClaims)
+
+	userID, err := strconv.Atoi(fmt.Sprintf("%.f", claims["sub"]))
+
+	if err != nil {
+		return nil, websocket.StatusPolicyViolation, ErrInvalidUserId
+	}
+
+	user, err = s.store.Users.GetByID(userID)
+
+	if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            wsjson.Write(ctx, conn, messaging.ServerMessage{Type: messaging.ERR, Body: ErrEnvelope{Error: ErrUserNotFound}})
+            return nil, websocket.StatusPolicyViolation, ErrUserNotFound
+        } 
+
+        log.Println("DEBUG", err.Error())
+        return nil, websocket.StatusInternalError, ErrInteralServer
+	}
+
+    return user, 0, nil
+}
+
+
+
+
