@@ -17,10 +17,6 @@ import (
 )
 
 
-type Client struct {
-	Conn *websocket.Conn
-}
-
 
 func (s *Server) sendInitialUserData(ctx context.Context, conn *websocket.Conn, user *store.User) error {
     ctxTimeout, cancel := context.WithTimeout(ctx, time.Second * 5)

@@ -17,6 +17,7 @@ Chatrix is a **real-time, distributed, event-driven messaging backend** built us
 - **WebSockets** for real-time communication
 - **PostgreSQL** 
 - **JWT** for authentication
+- **Redis** for pub/sub and service discovery
 
 ## Getting Started
 
