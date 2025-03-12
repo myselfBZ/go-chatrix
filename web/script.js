@@ -314,6 +314,12 @@ function showMessageInput(){
     
     const sendButton = document.createElement('button')
     sendButton.textContent = "send"
+    // enter as send button
+    input.addEventListener("keydown", (e) => {
+        if (e.key == "Enter"){
+            sendButton.click()
+        }
+    })
 
     const emojiButton = document.createElement('button')
     emojiButton.innerText = "🙂"
