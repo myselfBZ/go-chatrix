@@ -48,11 +48,11 @@ func (s *Server) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	claims := jwt.MapClaims{
 		"sub": user.ID,
-		"exp": time.Now().Add(s.Config.auth.Exp).Unix(),
+		"exp": time.Now().Add(s.Config.Auth.Exp).Unix(),
 		"iat": time.Now().Unix(),
 		"nbf": time.Now().Unix(),
-		"iss": s.Config.auth.Iss,
-		"aud": s.Config.auth.Iss,
+		"iss": s.Config.Auth.Iss,
+		"aud": s.Config.Auth.Iss,
 	}
 
 	token, err := s.auth.GenerateToken(claims)
@@ -95,11 +95,11 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 	claims := jwt.MapClaims{
 		"sub": user.ID,
-		"exp": time.Now().Add(s.Config.auth.Exp).Unix(),
+		"exp": time.Now().Add(s.Config.Auth.Exp).Unix(),
 		"iat": time.Now().Unix(),
 		"nbf": time.Now().Unix(),
-		"iss": s.Config.auth.Iss,
-		"aud": s.Config.auth.Iss,
+		"iss": s.Config.Auth.Iss,
+		"aud": s.Config.Auth.Iss,
 	}
 
 	token, err := s.auth.GenerateToken(claims)

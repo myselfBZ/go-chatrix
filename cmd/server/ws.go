@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/go-redis/redis/v8"
-    "github.com/myselfBZ/chatrix/internal/messaging"
+	"github.com/myselfBZ/chatrix/internal/messaging"
 	"github.com/myselfBZ/chatrix/internal/store"
 )
 
@@ -56,6 +57,7 @@ func (s *Server) sendInitialUserData(ctx context.Context, conn *websocket.Conn, 
     return nil
 }
 
+
 func (s *Server) handleWebSocketConn(ctx context.Context, conn *websocket.Conn) {
     user, _, err := s.webSocketAuth(ctx, conn)
 
@@ -82,7 +84,7 @@ func (s *Server) readLoop(c *websocket.Conn, user *store.User) {
 	for {
 		var event messaging.Event
 		if err := wsjson.Read(ctx, c, &event); err != nil {
-            if websocket.CloseStatus(err) != -1{
+            if errors.Is(err, io.EOF) || websocket.CloseStatus(err) != -1 {
                 s.pool.Remove(user.Username)
                 return
             }
@@ -116,6 +118,7 @@ func (s *Server) eventLoop() {
 				switch event.Type {
 				case messaging.TEXT:
 					s.handleText(event)
+                    defer cancel()
 				case messaging.SearchUserRequest:
 					var r messaging.SearchUserPayload
 					if err := json.Unmarshal([]byte(event.Body), &r); err != nil {
@@ -142,6 +145,8 @@ func (s *Server) eventLoop() {
 
                 case messaging.MARK_READ:
                     s.handleMarkRead(event)
+                default:
+                    log.Println("Unknown event type")
 				}
                 cancel()
 			}

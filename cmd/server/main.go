@@ -52,7 +52,7 @@ func main() {
 	config.Auth = authConfig{
 		Secret: "secret",
 		Exp:    time.Hour * 24,
-		Iss:    "some random ass thing",
+		Iss:    "chatrix-server",
 	}
 
 	s := NewServer(config)
