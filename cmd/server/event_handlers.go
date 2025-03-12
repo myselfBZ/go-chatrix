@@ -67,25 +67,37 @@ func (s *Server) handleMarkRead(event *messaging.Event) {
 
 
 
-func (s *Server) handleLoadChatHistory(p *messaging.LoadChatHistoryReqPayload, from string) {
+func (s *Server) handleLoadChatHistory(e *messaging.Event) {
+    var p messaging.LoadChatHistoryReqPayload
+
+    if err := json.Unmarshal([]byte(e.Body), &p); err != nil {
+        client := s.pool.Get(e.From)
+        if client != nil {
+            wsInvalidJSONPayload(context.TODO(), client.Conn)
+        }
+    }
+
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()
+
 	chat, err := s.store.Chats.GetByUsersID(p.User1ID, p.User2ID)
 	if err != nil {
 		if errors.Is(sql.ErrNoRows, err) {
-            s.sendServerMessage(ctx, from, &messaging.ServerMessage{Type: messaging.LoadChatHistoryResponse, Body: nil})
+            s.sendServerMessage(ctx, e.From, &messaging.ServerMessage{Type: messaging.LoadChatHistoryResponse, Body: nil})
 			return
 		}
         log.Println("SERVER ERROR:", err)
-        s.sendServerMessage(ctx, from, &messaging.ServerMessage{Type: messaging.ERR, Body: InternalServerError})
+        s.sendServerMessage(ctx, e.From, &messaging.ServerMessage{Type: messaging.ERR, Body: InternalServerError})
 		return
 	}
+
 	messages, err := s.store.Messages.GetByChatID(chat.ID)
 	if err != nil {
-        s.sendServerMessage(ctx, from, &messaging.ServerMessage{Type: messaging.ERR, Body: InternalServerError })
+        s.sendServerMessage(ctx, e.From, &messaging.ServerMessage{Type: messaging.ERR, Body: InternalServerError })
 		return
 	}
-    s.sendServerMessage(ctx, from, &messaging.ServerMessage{Type: messaging.LoadChatHistoryResponse, Body: messages})
+
+    s.sendServerMessage(ctx, e.From, &messaging.ServerMessage{Type: messaging.LoadChatHistoryResponse, Body: messages})
 }
 
 func (s *Server) handlePeerEvent(event *messaging.Event) {
@@ -102,16 +114,27 @@ func (s *Server) handlePeerEvent(event *messaging.Event) {
     s.sendServerMessage(context.TODO(), outMsg.To, &messaging.ServerMessage{Type: messaging.TEXT, Body: outMsg})
 }
 
-func (s *Server) handleUserSearch(query *messaging.SearchUserPayload) {
+func (s *Server) handleUserSearch(e *messaging.Event) {
+    var r messaging.SearchUserPayload
+
+    if err := json.Unmarshal([]byte(e.Body), &r); err != nil {
+        client := s.pool.Get(e.From)
+        if client != nil {
+            wsInvalidJSONPayload(context.TODO(), client.Conn)
+            return
+        }
+        return
+    }
+
     ctx := context.TODO()
-	users, err := s.store.Users.SearchByUsername(query.Username)
+	users, err := s.store.Users.SearchByUsername(r.Username)
 	if err != nil {
         if errors.Is(err, sql.ErrNoRows){
-            s.sendServerMessage(ctx, query.From, &messaging.ServerMessage{Type: messaging.ERR, Body: ErrEnvelope{ Error: errors.New("user not found") }})
+            s.sendServerMessage(ctx, e.From, &messaging.ServerMessage{Type: messaging.ERR, Body: ErrEnvelope{ Error: errors.New("user not found") }})
             return
         }
 		log.Println("DEBUG: ", err)
 		return
 	}
-    s.sendServerMessage(ctx, query.From, &messaging.ServerMessage{Type: messaging.SearchUserResponse, Body: users})
+    s.sendServerMessage(ctx, e.From, &messaging.ServerMessage{Type: messaging.SearchUserResponse, Body: users})
 }

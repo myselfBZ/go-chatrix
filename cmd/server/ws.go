@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -109,46 +108,22 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) eventLoop() {
-	// worker pool, to avoid bottleneck
+
 	for i := 0; i < s.Config.WorkerPool; i++ {
 		go func() {
 			for event := range s.eventChan {
-                errContext, cancel := context.WithTimeout(context.Background(), time.Second * 5)
-                defer cancel()
 				switch event.Type {
 				case messaging.TEXT:
 					s.handleText(event)
-                    defer cancel()
 				case messaging.SearchUserRequest:
-					var r messaging.SearchUserPayload
-					if err := json.Unmarshal([]byte(event.Body), &r); err != nil {
-						client := s.pool.Get(event.From)
-						if client != nil {
-                            wsInvalidJSONPayload(errContext, client.Conn)
-                            cancel()
-						}
-						continue
-					}
-					r.From = event.From
-					s.handleUserSearch(&r)
+					s.handleUserSearch(event)
 				case messaging.LoadChatHistoryRequest:
-					var p messaging.LoadChatHistoryReqPayload
-					if err := json.Unmarshal([]byte(event.Body), &p); err != nil {
-						client := s.pool.Get(event.From)
-						if client != nil {
-                            wsInvalidJSONPayload(errContext, client.Conn)
-                            cancel()
-						}
-                        continue
-					}
-					s.handleLoadChatHistory(&p, event.From)
-
+					s.handleLoadChatHistory(event)
                 case messaging.MARK_READ:
                     s.handleMarkRead(event)
                 default:
                     log.Println("Unknown event type")
 				}
-                cancel()
 			}
 		}()
 	}
