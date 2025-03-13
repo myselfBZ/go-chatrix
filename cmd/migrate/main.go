@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -18,14 +17,9 @@ func ensureEnvExists(key string) string{
 }
 
 var (
-	host     = ensureEnvExists("DB_HOST")
-	port     = ensureEnvExists("DB_PORT")
-	user     = ensureEnvExists("DB_USER")
-	password = ensureEnvExists("DB_PASSWORD")
-	db_name  = ensureEnvExists("DB_NAME")
+    connUrl = ensureEnvExists("DB_CONNECTION_URL")
 )
 
-// "postgres://postgres:new_password@localhost:32768/wonderlust?sslmode=disable", 30, 30, "15m"
 func main() {
 	if len(os.Args) != 2 {
 		log.Fatal("usage: migrate <path_to_schema>")
@@ -36,8 +30,7 @@ func main() {
 		log.Fatal("couldn't open the schema", err)
 	}
 
-	addr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, password, host, port, db_name)
-	db, err := db.New(addr, 30, 30, "15m")
+	db, err := db.New(connUrl, 30, 30, "15m")
 	if err != nil {
 		log.Fatal("couldn't connect to database", err)
 	}

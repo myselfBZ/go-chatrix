@@ -46,11 +46,7 @@ Set up your **environment variables** in a `.env` file:
 
 SERVER_HOST=localhost:6969
 SERVER_PORT=:6969
-DB_NAME=chatrix
-DB_HOST=localhost
-DB_PORT=32768
-DB_USER=postgres
-DB_PASSWORD=new_password
+DB_CONNECTION_URL=
 REDISADDR=localhost:6379
 ```
 
@@ -111,12 +107,7 @@ ws.onmessage = (event) => {
 ```
 SERVER_HOST=localhost:6969
 SERVER_PORT=:6969
-DB_NAME=chatrix
-DB_HOST=localhost
-DB_PORT=32768
-DB_USER=postgres
-DB_PASSWORD=new_password
-
+DB_CONNECTION_URL=
 REDISADDR=localhost:6379
 ```
 don't forget to set env vars!!!

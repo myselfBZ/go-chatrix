@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -23,22 +22,15 @@ func main() {
     var (
         server_port = ensureEnvExists("SERVER_PORT")
         serverHost = ensureEnvExists("SERVERHOST")
-        // db
-        dbhost        = ensureEnvExists("DB_HOST")
-        port        = ensureEnvExists("DB_PORT")
-        user        = ensureEnvExists("DB_USER")
-        password    = ensureEnvExists("DB_PASSWORD")
-        db_name     = ensureEnvExists("DB_NAME")
-        // redis 
+        dbConnUrl = ensureEnvExists("DB_CONNECTION_URL")
         redisAddr = ensureEnvExists("REDISADDR")
     )
 
 	config := Config{}
-    // a very special line
 	config.ListenAddr = server_port
     config.ServerAddr = serverHost
 	config.Db = dbConfig{
-		Addr: fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, password, dbhost, port, db_name),
+		Addr: dbConnUrl,
 	}
 
     config.Redis = redisConfig{
