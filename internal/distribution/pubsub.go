@@ -12,6 +12,11 @@ import (
 type MessageHandler func(msg *redis.Message)
 
 
+type PubSubService interface{
+    Publish(channel string, msg interface{}) error
+    Start()
+}
+
 
 func NewPubSub(client *redis.Client, handler MessageHandler, channel string) *PubSub {
     pubsub := client.Subscribe(context.TODO(), channel)

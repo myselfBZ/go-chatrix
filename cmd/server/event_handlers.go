@@ -17,7 +17,7 @@ func (s *Server) handleText(event *messaging.Event) {
 	var t messaging.IncomingMessagePayload
 
 	if err := json.Unmarshal([]byte(event.Body), &t); err != nil {
-		client := s.pool.Get(event.From)
+		client := s.connManager.Get(event.From)
 		if client != nil {
 			wsInvalidJSONPayload(context.TODO(), client.Conn)
 			cancel()
@@ -44,10 +44,9 @@ func (s *Server) handleText(event *messaging.Event) {
 }
 
 func (s *Server) handleMarkRead(event *messaging.Event) {
-    // else just handle it
     var p messaging.MarkReadRequestPayload
     if err := json.Unmarshal(event.Body, &p); err != nil {
-    	client := s.pool.Get(event.From)
+    	client := s.connManager.Get(event.From)
     	if client != nil {
             wsInvalidJSONPayload(context.TODO(), client.Conn)
     	}
@@ -71,7 +70,7 @@ func (s *Server) handleLoadChatHistory(e *messaging.Event) {
     var p messaging.LoadChatHistoryReqPayload
 
     if err := json.Unmarshal([]byte(e.Body), &p); err != nil {
-        client := s.pool.Get(e.From)
+        client := s.connManager.Get(e.From)
         if client != nil {
             wsInvalidJSONPayload(context.TODO(), client.Conn)
         }
@@ -118,7 +117,7 @@ func (s *Server) handleUserSearch(e *messaging.Event) {
     var r messaging.SearchUserPayload
 
     if err := json.Unmarshal([]byte(e.Body), &r); err != nil {
-        client := s.pool.Get(e.From)
+        client := s.connManager.Get(e.From)
         if client != nil {
             wsInvalidJSONPayload(context.TODO(), client.Conn)
             return

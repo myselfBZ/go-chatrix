@@ -52,8 +52,8 @@ type Server struct {
 	Config Config
 	auth   auth.Authenticator
 
-    pool      *messaging.Pool
-    pubsub    *distribution.PubSub
+    connManager      messaging.ConnectionManager
+    pubsub    distribution.PubSubService
 
 	eventChan chan *messaging.Event
     peerMsgChan chan *messaging.PeerMessage
@@ -88,7 +88,7 @@ func NewServer(config Config) *Server {
 
     server.pubsub = distribution.NewPubSub(redisClient, server.redisPubSubHandler, config.ServerAddr)
 
-    server.pool = messaging.NewPool(config.ServerAddr, redisClient)
+    server.connManager = messaging.NewPool(config.ServerAddr, redisClient)
 
     return server
 }
@@ -100,7 +100,8 @@ func (s *Server) registerRoutes() http.Handler {
 		// todo change this thing
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		// AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers

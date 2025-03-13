@@ -73,7 +73,7 @@ func (s *Server) handleWebSocketConn(ctx context.Context, conn *websocket.Conn) 
 
     client := messaging.NewClient(user, conn)
 
-    s.pool.Add(client)
+    s.connManager.Add(client)
 
     go s.readLoop(conn, user)
 }
@@ -84,7 +84,7 @@ func (s *Server) readLoop(c *websocket.Conn, user *store.User) {
 		var event messaging.Event
 		if err := wsjson.Read(ctx, c, &event); err != nil {
             if errors.Is(err, io.EOF) || websocket.CloseStatus(err) != -1 {
-                s.pool.Remove(user.Username)
+                s.connManager.Remove(user.Username)
                 return
             }
             wsInvalidJSONPayload(ctx, c)
@@ -180,9 +180,8 @@ func (s *Server) sendMessage(ctx context.Context, msgID int, t *messaging.Incomi
 	)
 }
 
-
 func (s *Server) sendServerMessage(ctx context.Context, to string, msg *messaging.ServerMessage) {
-	client := s.pool.Get(to)
+	client := s.connManager.Get(to)
 
 	if client != nil {
 		wsjson.Write(ctx, client.Conn, msg)
@@ -191,7 +190,7 @@ func (s *Server) sendServerMessage(ctx context.Context, to string, msg *messagin
 
     // look up the redis, if the client doesn't exist in 
     // the current server
-    peerAddr, err := s.pool.GetServerAddr(to)
+    peerAddr, err := s.connManager.GetServerAddr(to)
 
     if err != nil{
         // connection doesn't exist

@@ -27,7 +27,7 @@ func (s *Server) peerMsgLoop() {
 }
 
 func (s *Server) forwardToClient(to string, m *messaging.ServerMessage) {
-    client := s.pool.Get(to)
+    client := s.connManager.Get(to)
     if client != nil{
         wsjson.Write(context.TODO(), client.Conn, m)
     }
