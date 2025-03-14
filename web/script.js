@@ -30,6 +30,8 @@ let state = {
         username:"",
         id:null,
     },
+
+    chats:{}
     //...
 }
 
@@ -119,6 +121,27 @@ function init(){
                     // the user that current user is having conversation with
                     // then users just gets notified
                     alert(`you got a new message from ${data.body.from}`)
+                    if(! (data.body.from in state.chats)){
+                        const div = document.getElementById('chats')
+                        const chatCard = document.createElement('h3')
+                    
+                        chatCard.addEventListener("click", () => {
+                            if (state.to.username === chatCard.textContent) return;
+                            state.to.username = chatCard.textContent
+                            state.to.id = data.body.from_id
+                            
+                            const textingTo = document.getElementById('texting-to')
+                            textingTo.textContent = `${state.to.username}`
+                            handleLoadingChatHistory(data.body.from_id)
+                            showMessageInput()
+                        })
+                        
+                        chatCard.innerText = `${data.body.from}`
+                        // track the chats!
+                        state.chats[data.body.from] = true
+                        chatCard.className = "chat-cards"
+                        div.appendChild(chatCard)
+                    }
                     return
                 };
                 const msgs = document.getElementById('msgs')
@@ -126,7 +149,7 @@ function init(){
                 incomingMsg.textContent = `${data.body.content}`
                 incomingMsg.className = "others-msgs"
                 msgs.appendChild(incomingMsg)
-                console.log("i got a message with id: ", data.body.msg_id)
+                
                 readMessages([data.body.msg_id])
                 scrollToBottom()
 
@@ -169,9 +192,12 @@ function init(){
 
                     })
                     
-                    chatCard.textContent = i.username
+                    chatCard.innerText = `${i.username}`
+                    // track the chats!
+                    state.chats[i.username] = true
                     chatCard.className = "chat-cards"
                     div.appendChild(chatCard)
+                    
                 }
                 break;
 

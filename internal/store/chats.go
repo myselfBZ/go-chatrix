@@ -20,6 +20,7 @@ type Chat struct {
 type ChatPreview struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
+    Name     string `json:"name"`
 }
 
 func (c *ChatStore) Create(chat *Chat) error {
@@ -31,6 +32,7 @@ func (c *ChatStore) Create(chat *Chat) error {
 func (c *ChatStore) ChatPreviews(userID int) ([]*ChatPreview, error) {
 	q := `SELECT 
             users.id,
+            users.name,
             users.username AS with_username
           FROM chats
           JOIN users ON users.id = (CASE WHEN chats.user_1_id = $1 THEN chats.user_2_id ELSE chats.user_1_id END)
@@ -42,7 +44,7 @@ func (c *ChatStore) ChatPreviews(userID int) ([]*ChatPreview, error) {
 	var chats []*ChatPreview
 	for r.Next() {
 		var chat ChatPreview
-		err := r.Scan(&chat.ID, &chat.Username)
+		err := r.Scan(&chat.ID, &chat.Name, &chat.Username)
 		if err != nil {
 			return nil, err
 		}

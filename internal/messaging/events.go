@@ -62,7 +62,9 @@ type IncomingMessagePayload struct {
 
 type OutGoingMessage struct {
     MsgID     int   `json:"msg_id"`
+    FromId    int   `json:"from_id"`
 	From      string `json:"from"`
+    FromName  string  `json:"from_name"`  
 	Content   string `json:"content"`
 	Timestamp int64  `json:"timestamp"`
     // set only for peer to peer communication

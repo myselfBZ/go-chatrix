@@ -160,6 +160,7 @@ func (s *Server) storeMessage(msg *messaging.IncomingMessagePayload, chatID int)
 func (s *Server) sendMessage(ctx context.Context, msgID int, t *messaging.IncomingMessagePayload) {
 	out := &messaging.OutGoingMessage{
         MsgID: msgID,
+        FromId: t.FromUserID,
         To: t.To,
         From:      t.From,
         Content:   t.Content,
