@@ -4,6 +4,8 @@ build:
 
 run: build
 	@#TODO thinkg of something better for migrations!!!
+	@./bin/migrate ./cmd/migrate/schemas/0000000_create_db.sql
+	@echo "migrated 00000_create_db.sql successfully"
 	@./bin/migrate ./cmd/migrate/schemas/00001_initial.sql
 	@echo "migrated 00001_initial.sql successfully"
 	@#

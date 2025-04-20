@@ -109,7 +109,7 @@ func (s *Server) accept(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) eventLoop() {
 
-	for i := 0; i < s.Config.WorkerPool; i++ {
+    for range s.Config.WorkerPool{
 		go func() {
 			for event := range s.eventChan {
 				switch event.Type {

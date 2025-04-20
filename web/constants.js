@@ -1,1 +1,1 @@
-export const SERVERADDR = "http://localhost:6969"
+export const SERVERADDR = "http://104.197.18.50/api"
