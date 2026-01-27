@@ -1,12 +1,19 @@
 package main
 
 import (
+	"embed"
+	"fmt"
 	"log"
 	"os"
 
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/myselfBZ/chatrix/internal/db"
 )
+
+//go:embed schemas/*
+var fs embed.FS 
+
+
 func ensureEnvExists(key string) string{
     value := os.Getenv(key)
     if value != ""{
@@ -25,7 +32,7 @@ func main() {
 		log.Fatal("usage: migrate <path_to_schema>")
 	}
 
-	schema, err := os.ReadFile(os.Args[1])
+    schema, err := fs.ReadFile(fmt.Sprintf("%s", os.Args[1]))
 	if err != nil {
 		log.Fatal("couldn't open the schema", err)
 	}
