@@ -1,3 +1,10 @@
+⚠️ Legacy Version
+
+This was the first implementation of Chatrix.
+Experimental code, kept for historical reference.
+
+See the rewritten system here → [https://github.com/myselfBZ/chatrix-v2-backend]
+
 # Chatrix Backend
 
 Chatrix is a **real-time, distributed, event-driven messaging backend** built using **Go** and **WebSockets**. It enables instant messaging with automatic conversation creation, user search, and message delivery tracking.
