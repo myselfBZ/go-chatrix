@@ -1,4 +1,4 @@
-myselfBZ/go-redis-clone contribution guidlines.
+myselfBZ/go-chatrix contribution guidlines.
 
 # First of all, thank you a lot for contributing to the project. 
 
